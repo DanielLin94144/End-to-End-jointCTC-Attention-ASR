@@ -1,11 +1,7 @@
 # End-to-end Automatic Speech Recognition Systems - PyTorch Implementation
 For complete introdution and usage, please see the original repository [Alexander-H-Liu/End-to-end-ASR-Pytorch](https://github.com/Alexander-H-Liu/End-to-end-ASR-Pytorch).
 ## New features
-1. Added layer-wise transfer learning
-2. Supports multiple development sets
-3. Supports FreqCNN (frequency-divided CNN extractor) for whispered speech recognition.
-4. Supports DLHLP corpus for the course [Deep Learning for Human Language Processing](http://speech.ee.ntu.edu.tw/~tlkagk/courses_DLHLP20.html)
-
+1. 
 ## Instructions
 ### Training
 Modify `script/train.sh`, `script/train_lm.sh`, `config/librispeech_asr.yaml`, and `config/librispeech_lm.yaml` first. GPU is required.
@@ -24,15 +20,7 @@ This baseline is composed of a character-based joint CTC-attention ASR model and
 
 | Decoding | DEV WER(%) | TEST WER(%) |
 | -------- | ---------- | ----------- |
-| Greedy   | 25.4       | 25.9        |
-
-## DLHLP Baseline
-This baseline is composed of a character-based joint CTC-attention ASR model and an RNNLM which were trained on the DLHLP training set.
-
-| Decoding               | DEV WER(%) | TEST LevDistance |
-| ---------------------- | ---------- | ---------------- |
-| Greedy                 | 5.86       | 0.896            |
-| SpecAugment + Beam=5   | 2.88       | 0.508            |
+| Greedy   |            |             |
 
 ## TODO
 1. CTC beam decoding (testing)
