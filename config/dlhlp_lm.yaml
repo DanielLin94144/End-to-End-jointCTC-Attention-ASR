@@ -1,0 +1,28 @@
+data:
+  corpus:                                 # Pass to dataloader
+    # The following depends on corpus
+    name: 'DLHLP'                         # Specify corpus
+    path: '/data/storage/harry/test_env/DLHLP'
+    train_split: ['train']
+    dev_split: ['dev']
+    bucketing: True
+    batch_size: 64
+  text:
+    mode: 'character'                     # 'character'/'word'/'subword'
+    vocab_file: 'corpus/bopomo_vocab.txt'
+
+hparas:                                   # Experiment hyper-parameters
+  valid_step: 2000
+  max_step: 1000000
+  optimizer: 'Adam'
+  lr: 0.0001
+  eps: 0.00000001
+  lr_scheduler: 'fixed'                    # 'fixed'/'warmup'
+
+model:                                     # Model architecture
+  emb_tying: False                         # https://arxiv.org/pdf/1608.05859.pdf
+  emb_dim: 512
+  module: 'GRU'                            # 'LSTM'/'GRU'
+  dim: 512
+  n_layers: 2
+  dropout: 0.5
