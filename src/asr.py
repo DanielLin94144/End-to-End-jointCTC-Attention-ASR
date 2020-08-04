@@ -38,6 +38,7 @@ class ASR(nn.Module):
             self.attention = Attention(self.encoder.out_dim, query_dim, **attention)
 
         # Init
+        '''is there problem?'''
         init_adadelta = None # set for liGRU
         if init_adadelta:
             self.apply(init_weights)
@@ -47,13 +48,13 @@ class ASR(nn.Module):
                     bias = init_gate(bias)
         
         # Orthogonal weight initialisation
-        '''
+        
         for name, p in self.named_parameters():
             if 'weight' in name:
                 nn.init.orthogonal_(p)
             elif 'bias' in name:
                 nn.init.constant_(p, 0) 
-        '''
+        
         
     def set_state(self, prev_state, prev_attn):
         ''' Setting up all memory states for beam decoding'''
@@ -217,13 +218,13 @@ class Decoder(nn.Module):
         self.final_dropout = nn.Dropout(dropout)
         
         # Orthogonal weight initialisation
-        '''
+        
         for name, p in self.named_parameters():
             if 'weight' in name:
                 nn.init.orthogonal_(p)
             elif 'bias' in name:
                 nn.init.constant_(p, 0) 
-                '''
+                
         
     def init_state(self, bs):
         ''' Set all hidden states to zeros '''
@@ -435,13 +436,13 @@ class Encoder(nn.Module):
                     #nn.init.orthogonal(m.weight_hh_l)
         '''
         # Orthogonal weight initialisation
-        '''
+        
         for name, p in self.named_parameters():
             if 'weight' in name:
                 nn.init.orthogonal_(p)
             elif 'bias' in name:
                 nn.init.constant_(p, 0) 
-        '''
+        
     def forward(self, input_x, enc_len):
         for _, layer in enumerate(self.layers):
             #print(input_x.shape) torch.Size([8, 1642, 80])
