@@ -267,9 +267,9 @@ class Decoder(nn.Module):
             if not self.nolstm:
                 self.layers.flatten_parameters()
         #print(x.shape)
-        x, self.hidden_state = self.layers(x.unsqueeze(1),self.hidden_state)
+        #x, self.hidden_state = self.layers(x.unsqueeze(1),self.hidden_state)
         if self.nolstm : # liGRU
-            x, x_len = self.layers(x.unsqueeze(1))
+            x, x_len = self.layers(x.unsqueeze(1), len(x))
             self.hidden_state = x
         else:
             x, self.hidden_state = self.layers(x.unsqueeze(1),self.hidden_state)

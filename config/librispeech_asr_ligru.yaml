@@ -63,7 +63,7 @@ model:                                    # Model architecture
     loc_kernel_size: 100                  # just for mode=='loc'
     loc_kernel_num: 10                    # just for mode=='loc'
   decoder:
-    module: 'LSTM'                        # 'LSTM'/'GRU'/'Transformer'
+    module: 'liGRU'                        # 'LSTM'/'GRU'/'Transformer'
     dim: 320
     layer: 1
     dropout: 0
