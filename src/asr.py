@@ -48,13 +48,13 @@ class ASR(nn.Module):
                     bias = init_gate(bias)
         
         # Orthogonal weight initialisation
-        
+        '''
         for name, p in self.named_parameters():
             if 'weight' in name:
                 nn.init.orthogonal_(p)
             elif 'bias' in name:
                 nn.init.constant_(p, 0) 
-        
+        '''        
         
     def set_state(self, prev_state, prev_attn):
         ''' Setting up all memory states for beam decoding'''
@@ -128,7 +128,8 @@ class ASR(nn.Module):
         # Attention based decoding
         if self.enable_att:
             # Init (init char = <SOS>, reset all rnn state and cell)
-            self.decoder.init_state(bs)
+            self.decoder.init_state(bs) 
+            '''init decoder hidden state'''
             self.attention.reset_mem()
             last_char = self.pre_embed(torch.zeros((bs),dtype=torch.long, device=encode_feature.device))
             att_seq, output_seq = [], []
@@ -136,7 +137,7 @@ class ASR(nn.Module):
             # Preprocess data for teacher forcing
             if teacher is not None:
                 teacher = self.embed_drop(self.pre_embed(teacher))
-
+            "some bugs need to be fixed when using ligru"
             # Decode
             for t in range(decode_step):
                 # Attend (inputs current state of first layer, encoded features)
@@ -147,6 +148,7 @@ class ASR(nn.Module):
                 #print(attn)
                 # Decode (inputs context + embedded last character)                
                 decoder_input = torch.cat([last_char,context],dim=-1)
+                '''somethiing wrong with d_state, the problem might be in the decoder'''
                 cur_char, d_state = self.decoder(decoder_input)
                 # Prepare output as input of next step
                 if (teacher is not None):
@@ -201,11 +203,11 @@ class Decoder(nn.Module):
         #assert module in ['LSTM','GRU'], NotImplementedError
 
         self.hidden_state = None
-        self.enable_cell = module=='LSTM'
+        self.enable_cell = module=='LSTM' #or module=='liGRU'
         
         # Modules
         if module in ['LSTM', 'GRU']:
-            self.layers = getattr(nn,module)(input_dim,dim, num_layers=layer, dropout=dropout, batch_first=True) 
+            self.layers = getattr(nn,module)(input_dim,dim, num_layers=layer, dropout=dropout, batch_first=True) # batcb FIRST!
             self.nolstm = False
 
         else: # liGRU
@@ -218,13 +220,14 @@ class Decoder(nn.Module):
         self.final_dropout = nn.Dropout(dropout)
         
         # Orthogonal weight initialisation
-        
-        for name, p in self.named_parameters():
-            if 'weight' in name:
-                nn.init.orthogonal_(p)
-            elif 'bias' in name:
-                nn.init.constant_(p, 0) 
-                
+
+        if not self.nolstm :
+            for name, p in self.named_parameters():
+                if 'weight' in name:
+                    nn.init.orthogonal_(p)
+                elif 'bias' in name:
+                    nn.init.constant_(p, 0) 
+                    
         
     def init_state(self, bs):
         ''' Set all hidden states to zeros '''
@@ -265,6 +268,13 @@ class Decoder(nn.Module):
                 self.layers.flatten_parameters()
         #print(x.shape)
         x, self.hidden_state = self.layers(x.unsqueeze(1),self.hidden_state)
+        if self.nolstm : # liGRU
+            x, x_len = self.layers(x.unsqueeze(1))
+            self.hidden_state = x
+        else:
+            x, self.hidden_state = self.layers(x.unsqueeze(1),self.hidden_state)
+        '''for ligru, 2nd position ouput isn't hidden state'''
+        ''' it is x_len'''
         x = x.squeeze(1)
         #print(x.shape)
         char = self.char_trans(self.final_dropout(x))
@@ -359,7 +369,10 @@ class Attention(nn.Module):
                 else:
                     self.value = self.value.repeat(self.num_head,1,1) #
 
-        # Calculate attention    
+        # Calculate attention 
+        #print('decode_state:', dec_state)   
+        #print('query:', query)
+        #print('enc_feature (key)', self.key)
         context, attn = self.att_layer(query, self.key, self.value)
         if self.num_head>1:
             context = context.view(bs,self.num_head*self.v_dim)    # BNxD  -> BxND
@@ -411,10 +424,12 @@ class Encoder(nn.Module):
                                             sample_rate[l], sample_style, proj[l]))
                 input_dim = module_list[-1].out_dim
                 self.sample_rate = self.sample_rate*sample_rate[l]
+                self.nolstm = False
         else: # ligru
             module_list.append(liGRU(input_dim, dim, bidirection, dropout, layer_norm))
             input_dim = module_list[-1].out_dim
             self.sample_rate = self.sample_rate*1/4
+            self.nolstm = True
 
             
 
@@ -436,12 +451,12 @@ class Encoder(nn.Module):
                     #nn.init.orthogonal(m.weight_hh_l)
         '''
         # Orthogonal weight initialisation
-        
-        for name, p in self.named_parameters():
-            if 'weight' in name:
-                nn.init.orthogonal_(p)
-            elif 'bias' in name:
-                nn.init.constant_(p, 0) 
+        if not self.nolstm :
+            for name, p in self.named_parameters():
+                if 'weight' in name:                
+                    nn.init.orthogonal_(p)
+                elif 'bias' in name:
+                    nn.init.constant_(p, 0) 
         
     def forward(self, input_x, enc_len):
         for _, layer in enumerate(self.layers):

@@ -149,7 +149,7 @@ class liGRU(nn.Module):
         self.out_dim = self.ligru_lay[i] + self.bidir * self.ligru_lay[i]
 
     def forward(self, x, x_len):
-
+        #print('decoder input shape:', x.shape)
         # Applying Layer/Batch Norm
         if bool(self.ligru_use_laynorm_inp):
             x = self.ln0((x))
@@ -203,7 +203,8 @@ class liGRU(nn.Module):
                 at = wh_out[k] + self.uh[i](ht)
                 hcand = self.act[i](at) * drop_mask
                 ht = zt * ht + (1 - zt) * hcand
-
+                #print('ht:', ht)
+                #print(ht.shape)
                 if self.ligru_use_laynorm[i]:
                     ht = self.ln[i](ht)
 
@@ -220,6 +221,7 @@ class liGRU(nn.Module):
 
             # Setup x for the next hidden layer
             x = h
+            
 
         return x, x_len
 

@@ -1,12 +1,12 @@
 data:
   corpus:                                 # Pass to dataloader
     # The following depends on corpus
-    path: '/Home/daniel094144/LAS/LibriSpeech'
+    path: '/home/daniel094144/ASR/LibriSpeech'
     name: 'LibriSpeech'
     train_split: ['train-clean-100']
     dev_split: ['dev-clean']
     bucketing: True
-    batch_size: 16
+    batch_size: 12
 
   audio:                                  # Pass to audio transform
     feat_type: 'fbank'
@@ -27,7 +27,7 @@ data:
     vocab_file: 'corpus/librispeech_char.txt'
 
 hparas:                                   # Experiment hyper-parameters
-  valid_step: 5000
+  valid_step: 2000
   max_step: 200000
   tf_start: 1.0
   tf_end: 1.0
@@ -48,7 +48,7 @@ model:                                    # Model architecture
     vgg_low_filt: -1
     module: 'liGRU'                        # 'LSTM'/'GRU'/'Transformer'
     bidirection: True
-    dim: [320, 320, 320, 320] #[1024, 1024, 1024, 1024] 
+    dim: [320,320,320,320] #[1024, 1024, 1024, 1024] 
     dropout: [0.2,0.2,0.2,0.2]
     layer_norm: [False, False, False, False]
     proj: [True,True,True,True]           # Linear projection + Tanh after each rnn layer
@@ -63,7 +63,7 @@ model:                                    # Model architecture
     loc_kernel_size: 100                  # just for mode=='loc'
     loc_kernel_num: 10                    # just for mode=='loc'
   decoder:
-    module: 'liGRU'                        # 'LSTM'/'GRU'/'Transformer'
-    dim: 320 #1024
+    module: 'LSTM'                        # 'LSTM'/'GRU'/'Transformer'
+    dim: 320
     layer: 1
     dropout: 0
