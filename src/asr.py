@@ -142,6 +142,8 @@ class ASR(nn.Module):
             for t in range(decode_step):
                 # Attend (inputs current state of first layer, encoded features)
                 attn,context = self.attention(self.decoder.get_query(),encode_feature,encode_len)
+                #print(self.decoder.get_query().shape)
+                #print(self.decoder.get_query())
                 # context.shape is B , 2*D
                 #print(context.shape)
                 #print(context)
@@ -270,10 +272,10 @@ class Decoder(nn.Module):
         #x, self.hidden_state = self.layers(x.unsqueeze(1),self.hidden_state)
         if self.nolstm : # liGRU
             #print('start:',x.shape)
-            x, x_len = self.layers(x.unsqueeze(0), len(x))
+            x, x_len = self.layers(x.unsqueeze(1), len(x))
             #print(x.shape)
             self.hidden_state = x
-            x = x.squeeze(0)
+            x = x.squeeze(1)
             
             #print(x.shape)
         else:

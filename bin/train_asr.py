@@ -177,6 +177,7 @@ class Solver(BaseSolver):
                     del encode_len
 
                 if att_output is not None:
+                    #print(att_output.shape)
                     b,t,_ = att_output.shape
                     att_output = fuse_output if self.emb_fuse else att_output
                     att_loss = self.seq_loss(att_output.view(b*t,-1),txt.view(-1))
