@@ -27,7 +27,7 @@ data:
     vocab_file: 'corpus/librispeech_char.txt'
 
 hparas:                                   # Experiment hyper-parameters
-  valid_step: 5000
+  valid_step: 2000
   max_step: 200000
   tf_start: 1.0
   tf_end: 1.0
