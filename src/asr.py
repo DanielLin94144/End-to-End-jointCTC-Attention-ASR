@@ -262,7 +262,7 @@ class Decoder(nn.Module):
             return self.hidden_state[0].transpose(0,1).reshape(-1,self.dim*self.layer)
         else:
             return self.hidden_state.transpose(0,1).reshape(-1,self.dim*self.layer)
-
+        '''transpose(0, 1) actually does not do anything'''
     def forward(self, x):
         ''' Decode and transform into vocab '''
         if not self.training:
@@ -273,10 +273,20 @@ class Decoder(nn.Module):
         if self.nolstm : # liGRU
             #print('start:',x.shape)
             x, x_len = self.layers(x.unsqueeze(1), len(x))
-            #print(x.shape)
-            self.hidden_state = x
-            x = x.squeeze(1)
             
+            #print(x.shape)
+            
+            #self.hidden_state = x
+            #print('start:', x)
+            #self.hidden_state.permute(1, 0, 2) 
+            ##torch.Size([8, 1, 320])
+            x = x.squeeze(1) #[8, 320]
+            self.hidden_state = x.unsqueeze(0) #[1, 8, 320]
+            
+            #print(self.hidden_state.shape)
+            
+            
+            '''hidden state : (layer, B, dim) -> query -> (B, layer*dim)'''
             #print(x.shape)
         else:
             x, self.hidden_state = self.layers(x.unsqueeze(1),self.hidden_state)
