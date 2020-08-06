@@ -54,7 +54,8 @@ class LayerNorm(nn.Module):
 
 ''' new liGRU '''
 class liGRU(nn.Module):
-    def __init__(self, inp_dim, ligru_lay, bidirection, dropout, layer_norm, to_do='train'):
+    def __init__(self, inp_dim, ligru_lay, bidirection, dropout, layer_norm, \
+    proj=[False, False, False, False], to_do='train'):
         super(liGRU, self).__init__()
 
         # Reading parameters
@@ -70,6 +71,8 @@ class liGRU(nn.Module):
         self.bidir = bidirection
         self.use_cuda =True
         self.to_do = to_do
+        self.proj = proj
+
 
         if isinstance(self.ligru_lay, list):
             self.N_ligru_lay = len(self.ligru_lay)
@@ -78,6 +81,8 @@ class liGRU(nn.Module):
             self.ligru_use_batchnorm = [True]
             self.ligru_act = ["relu"]
             self.ligru_lay = [self.ligru_lay]
+            self.proj = [False] # for decoder
+        
 
 
         if self.to_do == "train":
@@ -108,7 +113,7 @@ class liGRU(nn.Module):
         
  
 
-
+        
         current_input = self.input_dim
 
         # Initialization of hidden layers
@@ -147,6 +152,11 @@ class liGRU(nn.Module):
                 current_input = self.ligru_lay[i]
 
         self.out_dim = self.ligru_lay[i] + self.bidir * self.ligru_lay[i]
+        # for encoder
+        self.pj = None
+        if self.proj[0]:
+            self.pj = nn.Linear(self.out_dim, self.out_dim)
+
 
     def forward(self, x, x_len):
         #print('decoder input shape:', x.shape)
@@ -221,6 +231,8 @@ class liGRU(nn.Module):
 
             # Setup x for the next hidden layer
             x = h
+            if self.proj[0]:
+                x = torch.tanh(self.pj(x))
             
 
         return x, x_len
