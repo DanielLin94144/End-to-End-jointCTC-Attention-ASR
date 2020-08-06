@@ -269,13 +269,22 @@ class Decoder(nn.Module):
         #print(x.shape)
         #x, self.hidden_state = self.layers(x.unsqueeze(1),self.hidden_state)
         if self.nolstm : # liGRU
-            x, x_len = self.layers(x.unsqueeze(1), len(x))
+            #print('start:',x.shape)
+            x, x_len = self.layers(x.unsqueeze(0), len(x))
+            #print(x.shape)
             self.hidden_state = x
+            x = x.squeeze(0)
+            
+            #print(x.shape)
         else:
             x, self.hidden_state = self.layers(x.unsqueeze(1),self.hidden_state)
+            #print(self.hidden_state.shape)
+            #print(x.shape)
+            x = x.squeeze(1)
+
         '''for ligru, 2nd position ouput isn't hidden state'''
         ''' it is x_len'''
-        x = x.squeeze(1)
+        
         #print(x.shape)
         char = self.char_trans(self.final_dropout(x))
         return char, x
