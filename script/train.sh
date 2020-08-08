@@ -5,12 +5,12 @@
 
 CONFIG="librispeech_asr_best"
 
-DIR="/home/daniel094144/End-to-End-jointCTC-Attention-ASR/"
+DIR="/Home/daniel094144/End-to-end-ASR-Pytorch/"
 
 echo "Start running training process of E2E ASR"
 CUDA_VISIBLE_DEVICES=$2 python3 main.py --config config/${CONFIG}.yaml \
     --name $1 \
-    --njobs 8 \
+    --njobs 16 \
     --seed 0 \
     --logdir ${DIR}/log/ \
     --ckpdir ${DIR}/ckpt/ \

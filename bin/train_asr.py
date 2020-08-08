@@ -126,12 +126,14 @@ class Solver(BaseSolver):
         while self.step< self.max_step:
             ctc_loss, att_loss, emb_loss = None, None, None
             # Renew dataloader to enable random sampling 
-            if self.curriculum>0 and n_epochs==self.curriculum:
+            '''
+            if self.curriculum>0: and n_epochs==self.curriculum:
                 self.verbose('Curriculum learning ends after {} epochs, starting random sampling.'.format(n_epochs))
                 self.tr_set, _, _, _, _, _ = \
                          load_dataset(self.paras.njobs, self.paras.gpu, self.paras.pin_memory, 
                                       False, **self.config['data'])
-            
+            '''
+            print('epoch: ', n_epochs)
             for data in self.tr_set:
                 # Pre-step : update tf_rate/lr_rate and do zero_grad
                 tf_rate = self.optimizer.pre_step(self.step)
@@ -140,6 +142,7 @@ class Solver(BaseSolver):
                 # Fetch data
                 feat, feat_len, txt, txt_len = self.fetch_data(data, train=True)
                 #print(feat.shape)
+                #print(feat_len) # is the feature len of each batch []
                 self.timer.cnt('rd')
                 #print(feat.shape)
                 # Forward model
@@ -188,11 +191,7 @@ class Solver(BaseSolver):
                 self.timer.cnt('fw')
 
                 # Backprop
-                grad_norm = self.backward(total_loss)
-                
-                '''update lr_scheduler'''
-                if self.lr_scheduler is 'reduce_stop_improve':
-                    self.lr_scheduler.step(total_loss)
+                grad_norm = self.backward(total_loss)             
 
                 self.step+=1
                 
@@ -213,7 +212,7 @@ class Solver(BaseSolver):
                                                                                                 ignore_repeat=True))
                     # if self.step==1 or self.step % (self.PROGRESS_STEP * 5) == 0:
                     #     self.write_log('spec_train',feat_to_fig(feat[0].transpose(0,1).cpu().detach(), spec=True))
-                    del total_loss
+                    #del total_loss
                     
                     if self.emb_fuse: 
                         if self.emb_decoder.fuse_learnable:
@@ -233,7 +232,10 @@ class Solver(BaseSolver):
                     # Empty cuda cache after every fixed amount of steps
                 torch.cuda.empty_cache() # https://github.com/pytorch/pytorch/issues/13246#issuecomment-529185354
                 self.timer.set()
-                if self.step > self.max_step:break
+                if self.step > self.max_step: break
+            #update lr_scheduler
+            if self.lr_scheduler is 'reduce_stop_improve':
+                self.lr_scheduler.step(total_loss)
             n_epochs +=1
         self.log.close()
         print('[INFO] Finished training after', human_format(self.max_step), 'steps.')

@@ -62,7 +62,7 @@ class liGRU(nn.Module):
         self.input_dim = inp_dim
         self.ligru_lay = ligru_lay
         self.ligru_drop = dropout
-        self.ligru_use_batchnorm =  [True,True,True,True]
+        self.ligru_use_batchnorm = [False, False, False, False] # [True,True,True,True]
         self.ligru_use_laynorm = layer_norm
         self.ligru_use_laynorm_inp = False
         self.ligru_use_batchnorm_inp = False #True
@@ -78,7 +78,7 @@ class liGRU(nn.Module):
             self.N_ligru_lay = len(self.ligru_lay)
         else:
             self.N_ligru_lay = 1
-            self.ligru_use_batchnorm = [True]
+            self.ligru_use_batchnorm = [False] #[True]
             self.ligru_act = ["relu"]
             self.ligru_lay = [self.ligru_lay]
             self.proj = [False] # for decoder
@@ -139,7 +139,10 @@ class liGRU(nn.Module):
             if self.ligru_orthinit:
                 nn.init.orthogonal_(self.uh[i].weight)
                 nn.init.orthogonal_(self.uz[i].weight)
-
+            # Glorot init for feedforward weight
+            nn.init.xavier_normal_(self.wh[i].weight)
+            nn.init.xavier_normal_(self.wz[i].weight)
+            
             # batch norm initialization
             self.bn_wh.append(nn.BatchNorm1d(self.ligru_lay[i], momentum=0.05))
             self.bn_wz.append(nn.BatchNorm1d(self.ligru_lay[i], momentum=0.05))
@@ -158,7 +161,7 @@ class liGRU(nn.Module):
             self.pj = nn.Linear(self.out_dim, self.out_dim)
 
 
-    def forward(self, x, x_len):
+    def forward(self, x, x_len): 
         #print('decoder input shape:', x.shape)
         # Applying Layer/Batch Norm
         if bool(self.ligru_use_laynorm_inp):
@@ -382,7 +385,7 @@ class VGGExtractor(nn.Module):
 
     def view_input(self,feature,feat_len):
         # downsample time
-        feat_len = feat_len//4
+        feat_len = feat_len//4 # ?
         # crop sequence s.t. t%4==0
         if feature.shape[1]%4 != 0:
             feature = feature[:,:-(feature.shape[1]%4),:].contiguous()
@@ -758,13 +761,13 @@ class BaseAttention(nn.Module):
         self.k_len = k_len
         bs,ts,_ = k.shape
         self.mask = np.zeros((bs,self.num_head,ts))
-        for idx,sl in enumerate(k_len):
-            self.mask[idx,:,sl:] = 1 # ToDo: more elegant way?
+        for idx,sl in enumerate(k_len): # there are "batch" enc_len
+            self.mask[idx,:,sl:] = 1 # ToDo: more elegant way? padding spare in the end of the sentence
         self.mask = torch.from_numpy(self.mask).to(k_len.device, dtype=torch.bool).view(-1,ts)# BNxT
     ### important
     def _attend(self, energy, value):
         attn = energy / self.temperature
-        attn = attn.masked_fill(self.mask, -np.inf)
+        attn = attn.masked_fill(self.mask, -np.inf) 
         attn = self.softmax(attn) # BNxT
         output = torch.bmm(attn.unsqueeze(1), value).squeeze(1) # BNxT x BNxTxD-> BNxD
         ## we don't use v in LAS case, v is enc_feature

@@ -6,7 +6,7 @@ data:
     train_split: ['train-clean-100']
     dev_split: ['dev-clean']
     bucketing: True
-    batch_size: 16
+    batch_size: 32
 
   audio:                                  # Pass to audio transform
     feat_type: 'fbank'
@@ -27,23 +27,23 @@ data:
     vocab_file: 'corpus/librispeech_char.txt'
 
 hparas:                                   # Experiment hyper-parameters
-  valid_step: 2000
-  max_step: 200000
+  valid_step: 1000
+  max_step: 100000
   tf_start: 1.0
   tf_end: 1.0
   tf_step: 150000
   optimizer: 'Adadelta'
   lr: 1.0
   eps: 0.00000001                          # 1e-8
-  lr_scheduler: 'fixed'                    # 'fixed'/'warmup'/'reduce_stop_improve'
-  curriculum: 0
+  lr_scheduler: 'reduce_stop_improve'                    # 'fixed'/'warmup'/'reduce_stop_improve'
+  curriculum: 1
   val_mode: 'wer'
   early_stopping: False
 
 model:                                    # Model architecture
   ctc_weight: 0.5                         # Weight for CTC loss
   encoder:
-    vgg: 1                       # 4x reduction on time feature extraction ( 5: VGG + layer normalization)
+    vgg: 5                       # 4x reduction on time feature extraction ( 5: VGG + layer normalization)
     vgg_freq: -1
     vgg_low_filt: -1
     module: 'liGRU'                        # 'LSTM'/'GRU'/'Transformer'

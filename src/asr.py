@@ -105,6 +105,8 @@ class ASR(nn.Module):
 
         # Encode
         encode_feature,encode_len = self.encoder(audio_feature,feature_len)
+        #print(feature_len)
+        #print(encode_len)
         # encode_feature.shape is B, T, D
         #print('input:', audio_feature.shape)
         #print('encoded:', encode_feature.shape)
@@ -141,7 +143,7 @@ class ASR(nn.Module):
             # Decode
             for t in range(decode_step):
                 # Attend (inputs current state of first layer, encoded features)
-                attn,context = self.attention(self.decoder.get_query(),encode_feature,encode_len)
+                attn,context = self.attention(self.decoder.get_query(), encode_feature,encode_len)
                 #print(self.decoder.get_query().shape)
                 #print(self.decoder.get_query())
                 # context.shape is B , 2*D
@@ -222,13 +224,14 @@ class Decoder(nn.Module):
         self.final_dropout = nn.Dropout(dropout)
         
         # Orthogonal weight initialisation
-
+        '''
         if not self.nolstm :
             for name, p in self.named_parameters():
                 if 'weight' in name:
                     nn.init.orthogonal_(p)
                 elif 'bias' in name:
                     nn.init.constant_(p, 0) 
+                    '''
                     
         
     def init_state(self, bs):
@@ -472,22 +475,28 @@ class Encoder(nn.Module):
                     #nn.init.orthogonal(m.weight_hh_l)
         '''
         # Orthogonal weight initialisation
+        '''
         if not self.nolstm :
             for name, p in self.named_parameters():
                 if 'weight' in name:                
                     nn.init.orthogonal_(p)
                 elif 'bias' in name:
                     nn.init.constant_(p, 0) 
-        
-    def forward(self, input_x, enc_len):
+        '''
+    def forward(self, input_x, enc_len): # enc_len is feature len
+        #print(len(self.layers))
         for _, layer in enumerate(self.layers):
             #print(input_x.shape) torch.Size([8, 1642, 80])
             #print(input_x.shape) 
-            input_x, enc_len = layer(input_x, enc_len)
+            #print(layer)
+            
+            input_x, enc_len = layer(input_x, enc_len) # is time len
             #print(input_x.shape) 
             #print('cycle')
             #print(input_x.shape) torch.Size([8, 410, 2560])
             # downsampling 4 
+      
+
         return input_x, enc_len
 
     def get_layer_output(self, input_x, enc_len, layer_num=1):
