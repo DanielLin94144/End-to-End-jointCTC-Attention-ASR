@@ -141,6 +141,8 @@ class Solver(BaseSolver):
                 
                 # Fetch data
                 feat, feat_len, txt, txt_len = self.fetch_data(data, train=True)
+                
+                
                 #print(feat.shape)
                 #print(feat_len) # is the feature len of each batch []
                 self.timer.cnt('rd')
