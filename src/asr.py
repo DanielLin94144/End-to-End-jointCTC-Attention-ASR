@@ -7,11 +7,11 @@ from torch.distributions.categorical import Categorical
 
 from src.util import init_weights, init_gate
 from src.module import VGGExtractor, VGGExtractor_LN, VGGExtractor2, FreqVGGExtractor, FreqVGGExtractor2, \
-                        RNNLayer, ScaleDotAttention, LocationAwareAttention, liGRU, act_fun
+                        RNNLayer, ScaleDotAttention, LocationAwareAttention, liGRU, act_fun, liGRU_layer
 
 class ASR(nn.Module):
     ''' ASR model, including Encoder/Decoder(s)'''
-    def __init__(self, input_size, vocab_size, ctc_weight, encoder, attention, decoder, emb_drop=0.0, init_adadelta=True):
+    def __init__(self, input_size, vocab_size, batch_size, ctc_weight, encoder, attention, decoder,  emb_drop=0.0, init_adadelta=True):
         super(ASR, self).__init__()
 
         # Setup
@@ -23,7 +23,7 @@ class ASR(nn.Module):
         self.lm = None
 
         # Modules
-        self.encoder = Encoder(input_size, **encoder)
+        self.encoder = Encoder(input_size, batch_size, **encoder)
         if self.enable_ctc:
             self.ctc_layer = nn.Sequential(
                 nn.Linear(self.encoder.out_dim, 512), 
@@ -33,7 +33,7 @@ class ASR(nn.Module):
             self.dec_dim = decoder['dim']
             self.pre_embed = nn.Embedding(vocab_size, self.dec_dim)
             self.embed_drop = nn.Dropout(emb_drop)
-            self.decoder = Decoder(self.encoder.out_dim+self.dec_dim, vocab_size, **decoder)
+            self.decoder = Decoder(self.encoder.out_dim+self.dec_dim, vocab_size, batch_size, **decoder)
             query_dim = self.dec_dim*self.decoder.layer
             self.attention = Attention(self.encoder.out_dim, query_dim, **attention)
 
@@ -196,7 +196,7 @@ class ASR(nn.Module):
 class Decoder(nn.Module):
     ''' Decoder (a.k.a. Speller in LAS) '''
     # ToDo:　More elegant way to implement decoder 
-    def __init__(self, input_dim, vocab_size, module, dim, layer, dropout):
+    def __init__(self, batch_size, input_dim, vocab_size, module, dim, layer, dropout):
         super(Decoder, self).__init__()
         self.in_dim = input_dim
         self.layer = layer
@@ -214,8 +214,9 @@ class Decoder(nn.Module):
             self.layers = getattr(nn,module)(input_dim,dim, num_layers=layer, dropout=dropout, batch_first=True) # batcb FIRST!
             self.nolstm = False
 
-        else: # liGRU
-            self.layers = liGRU(input_dim,dim, bidirection= False, dropout=[dropout], layer_norm=[False])       # decode is uni-direction
+        else: # liGRU_layer
+            #self.layers = liGRU(input_dim,dim, bidirection= False, dropout=[dropout], layer_norm=[False])       # decode is uni-direction
+            self.layers = liGRU_layer(input_dim,dim, batch_size, dropout=dropout, bidirectional= False)       # decode is uni-direction
             self.nolstm = True
         # liGRU(input_dim, dim, bidirection, dropout, layer_norm)
 
@@ -275,7 +276,7 @@ class Decoder(nn.Module):
         #x, self.hidden_state = self.layers(x.unsqueeze(1),self.hidden_state)
         if self.nolstm : # liGRU
             #print('start:',x.shape)
-            x, x_len = self.layers(x.unsqueeze(1), len(x))
+            x = self.layers(x.unsqueeze(1))
             
             #print(x.shape)
             
@@ -283,9 +284,9 @@ class Decoder(nn.Module):
             #print('start:', x)
             #self.hidden_state.permute(1, 0, 2) 
             ##torch.Size([8, 1, 320])
-            x = x.squeeze(1) #[8, 320]
-            self.hidden_state = x.unsqueeze(0) #[1, 8, 320]
-            
+            #x = x.squeeze(1) #[8, 320]
+            #self.hidden_state = x.unsqueeze(0) #[1, 8, 320]
+            self.hidden_state = x
             #print(self.hidden_state.shape)
             
             
@@ -408,7 +409,7 @@ class Attention(nn.Module):
 class Encoder(nn.Module):
     ''' Encoder (a.k.a. Listener in LAS)
         Encodes acoustic feature to latent representation, see config file for more details.'''
-    def __init__(self, input_size, vgg, vgg_freq, vgg_low_filt, module, bidirection, dim, dropout, layer_norm, proj, sample_rate, sample_style):
+    def __init__(self, input_size, batch_size, vgg, vgg_freq, vgg_low_filt, module, bidirection, dim, dropout, layer_norm, proj, sample_rate, sample_style):
         super(Encoder, self).__init__()
 
         # Hyper-parameters checking
@@ -448,15 +449,14 @@ class Encoder(nn.Module):
                                             sample_rate[l], sample_style, proj[l]))
                 input_dim = module_list[-1].out_dim
                 self.sample_rate = self.sample_rate*sample_rate[l]
-                self.nolstm = False
+            self.nolstm = False
         else: # ligru
             for l in range(num_layers):
-                module_list.append((input_dim, module, dim[l], bidirection, dropout[l], layer_norm[l],
-                                            sample_rate[l], sample_style, proj[l]))    
-            #module_list.append(liGRU(input_dim, dim, bidirection, dropout, layer_norm, proj))
-            input_dim = module_list[-1].out_dim
+                module_list.append(liGRU_layer(input_dim, dim[l], batch_size, dropout[l]))    
+                #input_dim = module_list[-1].out_dim
             self.sample_rate = self.sample_rate*1/4
             self.nolstm = True
+            #module_list.append(liGRU(input_dim, dim, bidirection, dropout, layer_norm, proj))
 
             
 
@@ -493,7 +493,8 @@ class Encoder(nn.Module):
             #print(input_x.shape) 
             #print(layer)
             
-            input_x, enc_len = layer(input_x, enc_len) # is time len
+            #input_x, enc_len = layer(input_x, enc_len) # is time len
+            input_x = layer(input_x) # is time len
             #print(input_x.shape) 
             #print('cycle')
             #print(input_x.shape) torch.Size([8, 410, 2560])

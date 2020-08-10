@@ -63,7 +63,8 @@ class Solver(BaseSolver):
         ''' Setup ASR model and optimizer '''
         # Model
         #print(self.feat_dim) #160
-        self.model = ASR(self.feat_dim, self.vocab_size, **self.config['model']).to(self.device)
+        batch_size = self.config['data']['corpus']['batch_size']//2
+        self.model = ASR(self.feat_dim, self.vocab_size, batch_size, **self.config['model']).to(self.device)
 
 
 

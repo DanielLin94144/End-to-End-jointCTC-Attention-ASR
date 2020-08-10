@@ -6,13 +6,15 @@ from torch.nn.utils.rnn import pack_padded_sequence,pad_packed_sequence
 from torch.autograd import Function
 
 FBANK_SIZE = 80
+   
+
 ''' one layer of liGRU using torchscript to accelrate training speed'''
-class liGRU_layer(torch.jit.ScriptModule):
+class liGRU_layer(torch.jit.ScriptModule): 
     def __init__(
         self,
         input_size,
         hidden_size,
-        num_layers,
+        #num_layers,
         batch_size,
         dropout=0.0,
         nonlinearity="relu",
@@ -22,14 +24,13 @@ class liGRU_layer(torch.jit.ScriptModule):
         fusion_layer_size=64,
         number_of_mic=1,
         act="relu",
-        reduce="mean",
-    ):
+        reduce="mean"):
 
         super(liGRU_layer, self).__init__()
 
         self.hidden_size = int(hidden_size)
         self.input_size = int(input_size)
-        self.batch_size = batch_size
+        self.batch_size = int(batch_size)
         self.bidirectional = bidirectional
         self.dropout = dropout
         self.device = device
@@ -38,6 +39,9 @@ class liGRU_layer(torch.jit.ScriptModule):
         self.number_of_mic = number_of_mic
         self.act = act
         self.reduce = reduce
+        self.N_drop_masks = 100
+        self.drop_mask_cnt = 0
+        #self.drop_masks_i = None
 
         if self.do_fusion:
             self.hidden_size = self.fusion_layer_size //  self.number_of_mic
@@ -82,12 +86,11 @@ class liGRU_layer(torch.jit.ScriptModule):
 
         self.drop = torch.nn.Dropout(p=self.dropout, inplace=False).to(device)
         self.drop_mask_te = torch.tensor([1.0], device=device).float()
-        self.N_drop_masks = 100
-        self.drop_mask_cnt = 0
+
 
         # Setting the activation function
         self.act = torch.nn.ReLU().to(device)
-
+    __constants__ = ['drop_mask_cnt','bidirectional', 'batch_size', 'hidden_size', 'N_drop_masks']
     @torch.jit.script_method
     def forward(self, x):
         # type: (Tensor) -> Tensor
@@ -108,7 +111,9 @@ class liGRU_layer(torch.jit.ScriptModule):
         wh = wh_bn.view(wh.shape[0], wh.shape[1], wh.shape[2])
 
         # Processing time steps
+        
         h = self.ligru_cell(wz, wh)
+        #self.drop_mask_cnt = h[-1]
 
         if self.bidirectional:
             h_f, h_b = h.chunk(2, dim=1)
@@ -153,14 +158,14 @@ class liGRU_layer(torch.jit.ScriptModule):
 
         hiddens = []
         ht = h_init
-
+        drop_mask_cnt = self.drop_mask_cnt
         if self.training:
 
-            drop_mask = drop_masks_i[self.drop_mask_cnt]
-            self.drop_mask_cnt = self.drop_mask_cnt + 1
+            drop_mask = drop_masks_i[drop_mask_cnt]
+            drop_mask_cnt = drop_mask_cnt + 1
 
-            if self.drop_mask_cnt >= self.N_drop_masks:
-                self.drop_mask_cnt = 0
+            if drop_mask_cnt >= self.N_drop_masks:
+                drop_mask_cnt = 0
                 if self.bidirectional:
                     drop_masks_i = (
                         self.drop(
@@ -204,8 +209,8 @@ class liGRU_layer(torch.jit.ScriptModule):
 
         # Stacking hidden states
         h = torch.stack(hiddens)
-        return h
         
+        return h
 def flip(x, dim):
     xsize = x.size()
     dim = x.dim() + dim if dim < 0 else dim
