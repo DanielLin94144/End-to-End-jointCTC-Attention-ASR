@@ -6,7 +6,7 @@ data:
     train_split: ['train-clean-100']
     dev_split: ['dev-clean']
     bucketing: True
-    batch_size: 12
+    batch_size: 32 #12
 
   audio:                                  # Pass to audio transform
     feat_type: 'fbank'
@@ -35,7 +35,7 @@ hparas:                                   # Experiment hyper-parameters
   optimizer: 'Adadelta'
   lr: 1.0
   eps: 0.00000001                          # 1e-8
-  lr_scheduler: 'fixed'                    # 'fixed'/'warmup'/'reduce_stop_improve'
+  lr_scheduler: 'reduce_stop_improve'                    # 'fixed'/'warmup'/'reduce_stop_improve'
   curriculum: 0
   val_mode: 'wer'
   early_stopping: False
@@ -43,7 +43,7 @@ hparas:                                   # Experiment hyper-parameters
 model:                                    # Model architecture
   ctc_weight: 0.5                         # Weight for CTC loss
   encoder:
-    vgg: 1                       # 4x reduction on time feature extraction ( 5: VGG + layer normalization)
+    vgg: 5                       # 4x reduction on time feature extraction ( 5: VGG + layer normalization)
     vgg_freq: -1
     vgg_low_filt: -1
     module: 'LSTM'                        # 'LSTM'/'GRU'/'Transformer'

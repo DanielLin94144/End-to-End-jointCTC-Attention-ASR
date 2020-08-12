@@ -448,7 +448,7 @@ class Encoder(nn.Module):
                                             sample_rate[l], sample_style, proj[l]))
                 input_dim = module_list[-1].out_dim
                 self.sample_rate = self.sample_rate*sample_rate[l]
-                self.nolstm = False
+            self.nolstm = False
         else: # ligru
             module_list.append(liGRU(input_dim, dim, bidirection, dropout, layer_norm, proj))
             input_dim = module_list[-1].out_dim

@@ -264,10 +264,10 @@ class liGRU(nn.Module):
         self.input_dim = inp_dim
         self.ligru_lay = ligru_lay
         self.ligru_drop = dropout
-        self.ligru_use_batchnorm = [False, False, False, False] # [True,True,True,True]
+        self.ligru_use_batchnorm = [True,True,True,True]
         self.ligru_use_laynorm = layer_norm
         self.ligru_use_laynorm_inp = False
-        self.ligru_use_batchnorm_inp = False #True
+        self.ligru_use_batchnorm_inp = False
         self.ligru_orthinit = True
         self.ligru_act = ["relu","relu","relu","relu"]
         self.bidir = bidirection

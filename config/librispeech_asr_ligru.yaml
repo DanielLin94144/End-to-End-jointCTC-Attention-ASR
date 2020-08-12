@@ -6,7 +6,7 @@ data:
     train_split: ['train-clean-100']
     dev_split: ['dev-clean']
     bucketing: True
-    batch_size: 32
+    batch_size: 12
 
   audio:                                  # Pass to audio transform
     feat_type: 'fbank'
@@ -63,7 +63,7 @@ model:                                    # Model architecture
     loc_kernel_size: 100                  # just for mode=='loc'
     loc_kernel_num: 10                    # just for mode=='loc'
   decoder:
-    module: 'liGRU'                        # 'LSTM'/'GRU'/'Transformer'
+    module: 'GRU'                        # 'LSTM'/'GRU'/'Transformer'
     dim: 320
     layer: 1
     dropout: 0
