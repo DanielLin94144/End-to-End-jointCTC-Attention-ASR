@@ -33,7 +33,7 @@ class ASR(nn.Module):
             self.dec_dim = decoder['dim']
             self.pre_embed = nn.Embedding(vocab_size, self.dec_dim)
             self.embed_drop = nn.Dropout(emb_drop)
-            self.decoder = Decoder(self.encoder.out_dim+self.dec_dim, vocab_size, batch_size, **decoder)
+            self.decoder = Decoder(batch_size, self.encoder.out_dim+self.dec_dim, vocab_size, **decoder)
             query_dim = self.dec_dim*self.decoder.layer
             self.attention = Attention(self.encoder.out_dim, query_dim, **attention)
 
@@ -148,6 +148,7 @@ class ASR(nn.Module):
                 #print(self.decoder.get_query())
                 # context.shape is B , 2*D
                 #print(context.shape)
+                #print(last_char.shape)
                 #print(context)
                 #print(attn)
                 # Decode (inputs context + embedded last character)                
@@ -210,16 +211,18 @@ class Decoder(nn.Module):
         self.enable_cell = module=='LSTM' #or module=='liGRU'
         
         # Modules
-        if module in ['LSTM', 'GRU']:
+        #print(input_dim)
+        if module in ['LSTM', 'GRU', 'liGRU']:
             self.layers = getattr(nn,module)(input_dim,dim, num_layers=layer, dropout=dropout, batch_first=True) # batcb FIRST!
-            self.nolstm = False
-
+            #self.nolstm = False
+            
+        '''
         else: # liGRU_layer
             #self.layers = liGRU(input_dim,dim, bidirection= False, dropout=[dropout], layer_norm=[False])       # decode is uni-direction
             self.layers = liGRU_layer(input_dim,dim, batch_size, dropout=dropout, bidirectional= False)       # decode is uni-direction
             self.nolstm = True
         # liGRU(input_dim, dim, bidirection, dropout, layer_norm)
-
+        '''
 
         self.char_trans = nn.Linear(dim,vocab_size)
         self.final_dropout = nn.Dropout(dropout)
@@ -269,14 +272,14 @@ class Decoder(nn.Module):
         '''transpose(0, 1) actually does not do anything'''
     def forward(self, x):
         ''' Decode and transform into vocab '''
-        if not self.training:
-            if not self.nolstm:
-                self.layers.flatten_parameters()
+        #if not self.training:
+            #if not self.nolstm:
+            #self.layers.flatten_parameters()
         #print(x.shape)
         #x, self.hidden_state = self.layers(x.unsqueeze(1),self.hidden_state)
-        if self.nolstm : # liGRU
+        #if self.nolstm : # liGRU
             #print('start:',x.shape)
-            x = self.layers(x.unsqueeze(1))
+            #x = self.layers(x.unsqueeze(1))
             
             #print(x.shape)
             
@@ -286,17 +289,23 @@ class Decoder(nn.Module):
             ##torch.Size([8, 1, 320])
             #x = x.squeeze(1) #[8, 320]
             #self.hidden_state = x.unsqueeze(0) #[1, 8, 320]
-            self.hidden_state = x
+            #self.hidden_state = x
             #print(self.hidden_state.shape)
             
             
-            '''hidden state : (layer, B, dim) -> query -> (B, layer*dim)'''
+            #'''hidden state : (layer, B, dim) -> query -> (B, layer*dim)'''
             #print(x.shape)
-        else:
-            x, self.hidden_state = self.layers(x.unsqueeze(1),self.hidden_state)
-            #print(self.hidden_state.shape)
-            #print(x.shape)
-            x = x.squeeze(1)
+        #else:
+        #print(x.shape) # b, 2*D + D
+
+        #print(x.unsqueeze(1).shape)
+        x, self.hidden_state = self.layers(x.unsqueeze(1), self.hidden_state)
+        #self.hidden_state = x
+        #self.hidden_state.permute(1, 0, 2) 
+        #print(self.hidden_state.shape)
+        #print(x)
+
+        x = x.squeeze(1)
 
         '''for ligru, 2nd position ouput isn't hidden state'''
         ''' it is x_len'''
@@ -443,13 +452,14 @@ class Encoder(nn.Module):
             input_dim = vgg_extractor.out_dim
             self.sample_rate = self.sample_rate * (4 if vgg < 3 else 2)
 
-        if module in ['LSTM','GRU']:
+        if module in ['LSTM','GRU', 'liGRU']:
             for l in range(num_layers):
                 module_list.append(RNNLayer(input_dim, module, dim[l], bidirection, dropout[l], layer_norm[l],
-                                            sample_rate[l], sample_style, proj[l]))
+                                            sample_rate[l], sample_style, proj[l], batch_size))
                 input_dim = module_list[-1].out_dim
                 self.sample_rate = self.sample_rate*sample_rate[l]
-            self.nolstm = False
+            #self.nolstm = False
+        '''
         else: # ligru
             for l in range(num_layers):
                 module_list.append(liGRU_layer(input_dim, dim[l], batch_size, dropout[l]))    
@@ -457,6 +467,7 @@ class Encoder(nn.Module):
             self.sample_rate = self.sample_rate*1/4
             self.nolstm = True
             #module_list.append(liGRU(input_dim, dim, bidirection, dropout, layer_norm, proj))
+        '''
 
             
 
@@ -492,9 +503,8 @@ class Encoder(nn.Module):
             #print(input_x.shape) torch.Size([8, 1642, 80])
             #print(input_x.shape) 
             #print(layer)
+            input_x, enc_len = layer(input_x, enc_len) # is time len
             
-            #input_x, enc_len = layer(input_x, enc_len) # is time len
-            input_x = layer(input_x) # is time len
             #print(input_x.shape) 
             #print('cycle')
             #print(input_x.shape) torch.Size([8, 410, 2560])

@@ -9,7 +9,7 @@ FBANK_SIZE = 80
    
 
 ''' one layer of liGRU using torchscript to accelrate training speed'''
-class liGRU_layer(torch.jit.ScriptModule): 
+class liGRU_layer(torch.jit.ScriptModule):
     def __init__(
         self,
         input_size,
@@ -24,13 +24,14 @@ class liGRU_layer(torch.jit.ScriptModule):
         fusion_layer_size=64,
         number_of_mic=1,
         act="relu",
-        reduce="mean"):
+        reduce="mean",
+    ):
 
         super(liGRU_layer, self).__init__()
 
         self.hidden_size = int(hidden_size)
         self.input_size = int(input_size)
-        self.batch_size = int(batch_size)
+        self.batch_size = batch_size
         self.bidirectional = bidirectional
         self.dropout = dropout
         self.device = device
@@ -39,9 +40,6 @@ class liGRU_layer(torch.jit.ScriptModule):
         self.number_of_mic = number_of_mic
         self.act = act
         self.reduce = reduce
-        self.N_drop_masks = 100
-        self.drop_mask_cnt = 0
-        #self.drop_masks_i = None
 
         if self.do_fusion:
             self.hidden_size = self.fusion_layer_size //  self.number_of_mic
@@ -86,15 +84,16 @@ class liGRU_layer(torch.jit.ScriptModule):
 
         self.drop = torch.nn.Dropout(p=self.dropout, inplace=False).to(device)
         self.drop_mask_te = torch.tensor([1.0], device=device).float()
-
+        self.N_drop_masks = 100
+        self.drop_mask_cnt = 0
 
         # Setting the activation function
         self.act = torch.nn.ReLU().to(device)
-    __constants__ = ['drop_mask_cnt','bidirectional', 'batch_size', 'hidden_size', 'N_drop_masks']
+
     @torch.jit.script_method
     def forward(self, x):
         # type: (Tensor) -> Tensor
-
+        #print('li', x.shape)
         if self.bidirectional:
             x_flip = x.flip(0)
             x = torch.cat([x, x_flip], dim=1)
@@ -111,21 +110,19 @@ class liGRU_layer(torch.jit.ScriptModule):
         wh = wh_bn.view(wh.shape[0], wh.shape[1], wh.shape[2])
 
         # Processing time steps
-        
         h = self.ligru_cell(wz, wh)
-        #self.drop_mask_cnt = h[-1]
 
         if self.bidirectional:
             h_f, h_b = h.chunk(2, dim=1)
             h_b = h_b.flip(0)
             h = torch.cat([h_f, h_b], dim=2)
-
+        #print('h', h.shape)
         return h
 
     @torch.jit.script_method
     def ligru_cell(self, wz, wh):
         # type: (Tensor, Tensor) -> Tensor
-
+        self.batch_size = wh.shape[0]//2
         if self.bidirectional:
             h_init = torch.zeros(
                 2 * self.batch_size,
@@ -158,14 +155,14 @@ class liGRU_layer(torch.jit.ScriptModule):
 
         hiddens = []
         ht = h_init
-        drop_mask_cnt = self.drop_mask_cnt
+
         if self.training:
 
-            drop_mask = drop_masks_i[drop_mask_cnt]
-            drop_mask_cnt = drop_mask_cnt + 1
+            drop_mask = drop_masks_i[self.drop_mask_cnt]
+            self.drop_mask_cnt = self.drop_mask_cnt + 1
 
-            if drop_mask_cnt >= self.N_drop_masks:
-                drop_mask_cnt = 0
+            if self.drop_mask_cnt >= self.N_drop_masks:
+                self.drop_mask_cnt = 0
                 if self.bidirectional:
                     drop_masks_i = (
                         self.drop(
@@ -193,24 +190,30 @@ class liGRU_layer(torch.jit.ScriptModule):
 
         else:
             drop_mask = self.drop_mask_te
-
-        for k in range(wh.shape[0]):
+        #print('wh', wh.shape)
+        #print('ht', ht.shape)
+        for k in range(wh.shape[1]):
 
             uz, uh = self.u(ht).chunk(2, 1)
-
-            at = wh[k] + uh
-            zt = wz[k] + uz
-
+            #print('uz', uz.shape)
+            #print('uh', uh.shape)
+            '''bug fixing'''
+            at = wh[:, k, :] + uh # B, T, D
+            zt = wz[:, k, :] + uz
             # ligru equation
             zt = torch.sigmoid(zt)
+            #print('at:', at)
+            #print(drop_mask.shape)
             hcand = self.act(at) * drop_mask
             ht = zt * ht + (1 - zt) * hcand
             hiddens.append(ht)
 
         # Stacking hidden states
         h = torch.stack(hiddens)
-        
+        h = h.permute(1, 0, 2)
         return h
+
+
 def flip(x, dim):
     xsize = x.size()
     dim = x.dim() + dim if dim < 0 else dim
@@ -872,7 +875,7 @@ class FreqVGGExtractor2(nn.Module):
 
 class RNNLayer(nn.Module):
     ''' RNN wrapper, includes time-downsampling'''
-    def __init__(self, input_dim, module, dim, bidirection, dropout, layer_norm, sample_rate, sample_style, proj):
+    def __init__(self, input_dim, module, dim, bidirection, dropout, layer_norm, sample_rate, sample_style, proj, batch_size):
         super(RNNLayer, self).__init__()
         # Setup
         rnn_out_dim = 2*dim if bidirection else dim
@@ -889,9 +892,13 @@ class RNNLayer(nn.Module):
         #print(dim) = 320
 
         # Recurrent layer
-        self.layer = getattr(nn,module.upper())(input_dim, dim, bidirectional=bidirection, num_layers=1, batch_first=True)
+        if module in ['LSTM','GRU']:
+            self.layer = getattr(nn,module.upper())(input_dim, dim, bidirectional=bidirection, num_layers=1, batch_first=True)
+            self.gru = True
         ## get LSTM or GRU
-
+        else: # liGRU
+            self.layer = liGRU_layer(input_dim, dim, batch_size, bidirectional=bidirection)
+            self.gru = False
 
         # Regularizations
         if self.layer_norm:
@@ -906,12 +913,15 @@ class RNNLayer(nn.Module):
     def forward(self, input_x , x_len):
         # Forward RNN
         '''before using rnn to acclerate?'''
-        if not self.training:
-            self.layer.flatten_parameters()
+        #if not self.training:
+            #self.layer.flatten_parameters()
         
         # ToDo: check time efficiency of pack/pad
         #input_x = pack_padded_sequence(input_x, x_len, batch_first=True, enforce_sorted=False)
-        output,_ = self.layer(input_x)
+        if self.gru:
+            output,_ = self.layer(input_x)
+        else:
+            output = self.layer(input_x)
         #print('input:', input_x.shape)
         #print('output:', output.shape)
         #output,x_len = pad_packed_sequence(output,batch_first=True)

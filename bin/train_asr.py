@@ -122,6 +122,7 @@ class Solver(BaseSolver):
         stop_epoch = 10
         batch_size = self.config['data']['corpus']['batch_size']
         stop_step = len(self.tr_set)*stop_epoch//batch_size
+        
 
 
         while self.step< self.max_step:
@@ -166,7 +167,7 @@ class Solver(BaseSolver):
                     if self.step > stop_step:
                         ctc_output = None
                         self.model.ctc_weight = 0
-                    
+                #print(ctc_output.shape)
                 # Compute all objectives
                 if ctc_output is not None:
                     if self.paras.cudnn_ctc:

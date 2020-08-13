@@ -23,7 +23,7 @@ class Optimizer():
             self.opt = opt(parameters,lr=1.0) 
         if lr_scheduler == 'reduce_stop_improve':
             self.opt = opt(parameters,lr=lr,rho=0.95,eps=eps,weight_decay=weight_decay) # adadelta
-            self.lr_scheduler = LR.ReduceLROnPlateau(self.opt, 'min', factor=0.8, patience=3, verbose=True)
+            self.lr_scheduler = LR.ReduceLROnPlateau(self.opt, 'min', factor=0.5, patience=0, verbose=True)
         else:
             self.lr_scheduler = None
             if optimizer.lower()[:4] == 'adam':
