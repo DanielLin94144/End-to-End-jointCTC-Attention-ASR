@@ -39,6 +39,7 @@ hparas:                                   # Experiment hyper-parameters
   curriculum: 1
   val_mode: 'wer'
   early_stopping: False
+  label_smoothing: True
 
 model:                                    # Model architecture
   ctc_weight: 0.5                         # Weight for CTC loss

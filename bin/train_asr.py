@@ -7,7 +7,7 @@ from src.solver import BaseSolver
 from src.asr import ASR
 from src.optim import Optimizer
 from src.data import load_dataset
-from src.util import human_format, cal_er, feat_to_fig
+from src.util import human_format, cal_er, feat_to_fig, LabelSmoothingLoss
 from src.audio import Delta, Postprocess, Augment
 
 EMPTY_CACHE_STEP = 100
@@ -72,7 +72,12 @@ class Solver(BaseSolver):
         model_paras = [{'params':self.model.parameters()}]
 
         # Losses
-        self.seq_loss = torch.nn.CrossEntropyLoss(ignore_index=0)
+        '''testing label smoothing'''
+        LS = True
+        if config['hparas']['label_smoothing']:
+            self.seq_loss = LabelSmoothingLoss(31, 0.5)    
+        else:    
+            self.seq_loss = torch.nn.CrossEntropyLoss(ignore_index=0)
         self.ctc_loss = torch.nn.CTCLoss(blank=0, zero_infinity=False) # Note: zero_infinity=False is unstable?
 
         # Plug-ins
