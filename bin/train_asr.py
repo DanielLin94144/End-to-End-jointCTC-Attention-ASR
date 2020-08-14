@@ -74,8 +74,9 @@ class Solver(BaseSolver):
         # Losses
         '''testing label smoothing'''
         LS = True
-        if config['hparas']['label_smoothing']:
-            self.seq_loss = LabelSmoothingLoss(31, 0.5)    
+        if self.config['hparas']['label_smoothing']:
+            self.seq_loss = LabelSmoothingLoss(31, 0.1)   
+            print('[INFO]  using label smoothing. ') 
         else:    
             self.seq_loss = torch.nn.CrossEntropyLoss(ignore_index=0)
         self.ctc_loss = torch.nn.CTCLoss(blank=0, zero_infinity=False) # Note: zero_infinity=False is unstable?
