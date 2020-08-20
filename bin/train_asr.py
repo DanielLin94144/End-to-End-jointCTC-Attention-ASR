@@ -121,7 +121,7 @@ class Solver(BaseSolver):
             if self.fix_dec and self.model.enable_ctc:
                 self.model.fix_ctc_layer()
         
-        n_epochs = 0
+        self.n_epochs = 0
         self.timer.set()
         '''early stopping for ctc '''
         self.early_stoping = self.config['hparas']['early_stopping']
@@ -134,14 +134,14 @@ class Solver(BaseSolver):
         while self.step< self.max_step:
             ctc_loss, att_loss, emb_loss = None, None, None
             # Renew dataloader to enable random sampling 
-            '''
-            if self.curriculum>0: and n_epochs==self.curriculum:
+            
+            if self.curriculum>0 and n_epochs==self.curriculum:
                 self.verbose('Curriculum learning ends after {} epochs, starting random sampling.'.format(n_epochs))
                 self.tr_set, _, _, _, _, _ = \
                          load_dataset(self.paras.njobs, self.paras.gpu, self.paras.pin_memory, 
                                       False, **self.config['data'])
-            '''
-            print('epoch: ', n_epochs)
+            
+            
             for data in self.tr_set:
                 # Pre-step : update tf_rate/lr_rate and do zero_grad
                 tf_rate = self.optimizer.pre_step(self.step)
@@ -234,17 +234,24 @@ class Solver(BaseSolver):
                             self.validate(self.dv_set[dv_id], self.dv_names[dv_id])
                     else:
                         self.validate(self.dv_set, self.dv_names)
-
+                if self.step % (len(self.tr_set)// batch_size)==0: # one epoch
+                    print('Have finished epoch: ', self.n_epochs)
+                    self.n_epochs +=1
+                    
+                    if self.lr_scheduler is 'reduce_stop_improve':
+                        self.lr_scheduler.step(total_loss)
                 # End of step
                 # if self.step % EMPTY_CACHE_STEP == 0:
                     # Empty cuda cache after every fixed amount of steps
                 torch.cuda.empty_cache() # https://github.com/pytorch/pytorch/issues/13246#issuecomment-529185354
                 self.timer.set()
                 if self.step > self.max_step: break
+            
+            
+            
             #update lr_scheduler
-            if self.lr_scheduler is 'reduce_stop_improve':
-                self.lr_scheduler.step(total_loss)
-            n_epochs +=1
+            
+            
         self.log.close()
         print('[INFO] Finished training after', human_format(self.max_step), 'steps.')
         

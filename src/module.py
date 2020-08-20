@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence,pad_packed_sequence
 from torch.autograd import Function
 
-FBANK_SIZE = 80
+FBANK_SIZE = 160
    
 
 ''' one layer of liGRU using torchscript to accelrate training speed'''

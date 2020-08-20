@@ -290,11 +290,13 @@ class ReadAudio(nn.Module):
         if type(filepath) is not str:
             return filepath
         waveform, sample_rate = torchaudio.load(filepath)
+        
         if sample_rate != self.desired_sr:
             # Sample all data to specified sample rate
             waveform = torchaudio.compliance.kaldi.resample_waveform(waveform, 
                                                                     sample_rate, 
                                                                     self.desired_sr)
+
         # print('new shape  : {}'.format(waveform.shape))
         return waveform
 
@@ -314,7 +316,7 @@ import librosa.util
 #from torchaudio.transforms import freq_mask, time_mask, time_warp
 '''new Augment function'''
 class Augment(nn.Module):
-    def __init__(self, T=40, num_masks=1, replace_with_zero=False, F=30):
+    def __init__(self, T=40, num_masks=2, replace_with_zero=False, F=27):#ori: T = 40
         super(Augment, self).__init__()    
         self.T=T
         self.num_masks=num_masks
@@ -368,7 +370,7 @@ class Augment(nn.Module):
 
     def freq_mask(self, spec, F=30, num_masks=1, replace_with_zero=False):
         cloned = spec
-        num_mel_channels = cloned.shape[0]//2
+        num_mel_channels = cloned.shape[0]
 
         for i in range(0, num_masks):
             f = random.randrange(0, F)
@@ -496,17 +498,22 @@ def pop_audio_config(audio_config):
 def create_transform(audio_config, post_process=True, mode='train'):
     # Delta
     delta_order = audio_config.pop("delta_order", 0)
+    #print(delta_order)
     delta_window_size = audio_config.pop("delta_window_size", 2)
     apply_cmvn = audio_config.pop("apply_cmvn", False)
 
     # Extract Feature
     feat_type = audio_config.pop("feat_type")
+    
     feat_dim = audio_config.pop("feat_dim")
+    #print(feat_dim)
     augment = audio_config.pop("augment")
 
     transforms = [ReadAudio(SAMPLE_RATE)]
 
     transforms.append(ExtractAudioFeature(mode=feat_type, num_mel_bins=feat_dim, sample_rate=SAMPLE_RATE, **audio_config))
+
+
 
 
     if delta_order >= 1:

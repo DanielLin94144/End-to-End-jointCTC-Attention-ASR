@@ -2,7 +2,7 @@ data:
   corpus:                                 # Pass to dataloader
     # The following depends on corpus
     name: 'DLHLP'                         # Specify corpus
-    path: '/data/storage/harry/test_env/DLHLP'
+    path: '/Home/daniel094144/End-to-End-jointCTC-Attention-ASR/DLHLP'
     train_split: ['train']
     dev_split: ['dev']
     bucketing: True

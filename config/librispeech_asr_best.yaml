@@ -19,7 +19,7 @@ data:
     ref_level_db: 20
     min_level_db: -100
     preemphasis_coeff: 0.97
-    augment: False
+    augment: True
     
 
   text:
@@ -39,11 +39,12 @@ hparas:                                   # Experiment hyper-parameters
   curriculum: 0
   val_mode: 'wer'
   early_stopping: False
+  label_smoothing: True
 
 model:                                    # Model architecture
   ctc_weight: 0.5                         # Weight for CTC loss
   encoder:
-    vgg: 1                       # 4x reduction on time feature extraction ( 5: VGG + layer normalization)
+    vgg: 5                     # 4x reduction on time feature extraction ( 5: VGG + layer normalization)
     vgg_freq: -1
     vgg_low_filt: -1
     module: 'LSTM'                        # 'LSTM'/'GRU'/'Transformer'

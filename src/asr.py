@@ -98,7 +98,7 @@ class ASR(nn.Module):
         '''
         # Init
         bs = audio_feature.shape[0]
-        #print(audio_feature)
+        #print(audio_feature.shape)
 
         ctc_output, att_output, att_seq = None, None, None
         dec_state = [] if get_dec_state else None
@@ -414,6 +414,29 @@ class Attention(nn.Module):
         
         return attn,context
 
+class DNN(nn.Module):
+    def __init__(self, input_dim):
+        super(DNN, self).__init__()
+
+        self.input_dim = input_dim
+        self.hidden_layer = 512
+        self.bn = nn.BatchNorm1d(self.hidden_layer)
+        self.fc1 = nn.Linear(self.input_dim, self.hidden_layer)
+        self.fc2 = nn.Linear(self.hidden_layer, self.hidden_layer)
+        self.act = nn.ReLU()
+    def forward(self, x):
+        '''add DNN at the end of encoder'''
+        #print(x.shape)
+        x = self.fc1(x)
+        x_bn = self.bn(x.view(x.shape[0] * x.shape[1], x.shape[2]))
+        x = x_bn.view(x.shape[0], x.shape[1], x.shape[2])
+        x = self.act(x)
+        x = self.fc2(x)
+        x_bn = self.bn(x.view(x.shape[0] * x.shape[1], x.shape[2]))
+        x = x_bn.view(x.shape[0], x.shape[1], x.shape[2])
+        x = self.act(x)
+        return x
+
 
 class Encoder(nn.Module):
     ''' Encoder (a.k.a. Listener in LAS)
@@ -459,21 +482,11 @@ class Encoder(nn.Module):
                 input_dim = module_list[-1].out_dim
                 self.sample_rate = self.sample_rate*sample_rate[l]
             #self.nolstm = False
-        '''
-        else: # ligru
-            for l in range(num_layers):
-                module_list.append(liGRU_layer(input_dim, dim[l], batch_size, dropout[l]))    
-                #input_dim = module_list[-1].out_dim
-            self.sample_rate = self.sample_rate*1/4
-            self.nolstm = True
-            #module_list.append(liGRU(input_dim, dim, bidirection, dropout, layer_norm, proj))
-        '''
-
-            
-
         self.in_dim = input_size
         self.out_dim = input_dim
         self.layers = nn.ModuleList(module_list)
+        #self.DNN = DNN(input_dim)
+
         #print(self.layers)
         '''
         # weight initialization 
@@ -509,7 +522,7 @@ class Encoder(nn.Module):
             #print('cycle')
             #print(input_x.shape) torch.Size([8, 410, 2560])
             # downsampling 4 
-      
+        #input_x = self.DNN(input_x)
 
         return input_x, enc_len
 

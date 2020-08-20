@@ -6,7 +6,7 @@ data:
     train_split: ['train-clean-100']
     dev_split: ['dev-clean']
     bucketing: True
-    batch_size: 12
+    batch_size: 16
 
   audio:                                  # Pass to audio transform
     feat_type: 'fbank'
@@ -36,10 +36,10 @@ hparas:                                   # Experiment hyper-parameters
   lr: 1.0
   eps: 0.00000001                          # 1e-8
   lr_scheduler: 'reduce_stop_improve'                    # 'fixed'/'warmup'/'reduce_stop_improve'
-  curriculum: 1
+  curriculum: 100
   val_mode: 'wer'
   early_stopping: False
-  label_smoothing: True
+  label_smoothing: False
 
 model:                                    # Model architecture
   ctc_weight: 0.5                         # Weight for CTC loss
