@@ -12,13 +12,13 @@ data:
     #threshold: 100.0                      # Threshold of length of audio(sec)
 src:
   config: '/Home/daniel094144/End-to-End-jointCTC-Attention-ASR/config/dlhlp_asr.yaml'
-  ckpt: '/Home/daniel094144/End-to-End-jointCTC-Attention-ASR/ckpt/first/best_att_dev.pth'
+  ckpt: '/Home/daniel094144/End-to-End-jointCTC-Attention-ASR/ckpt/second/best_att_dev.pth'
 
 decode:
-  beam_size: 16
+  beam_size: 8
   min_len_ratio: 0.01
   max_len_ratio: 0.30
-  #lm_path: '/data/storage/harry/dlhlp2020/hw1/ckpt/DLHLP_RNNLM_256GRU2_0/best_ppx.pth'
-  #lm_config: 'config/dlhlp_lm.yaml'
-  #lm_weight: 0.7
-  #ctc_weight: 0
+  lm_path: '/Home/daniel094144/End-to-End-jointCTC-Attention-ASR/DLHLP_result/ckpt/lm/best_ppx.pth'
+  lm_config: 'config/dlhlp_lm.yaml'
+  lm_weight: 0
+  ctc_weight: 0

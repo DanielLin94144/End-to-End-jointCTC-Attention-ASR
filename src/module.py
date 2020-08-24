@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence,pad_packed_sequence
 from torch.autograd import Function
 
-FBANK_SIZE = 160
+FBANK_SIZE = 80
    
 
 ''' one layer of liGRU using torchscript to accelrate training speed'''
@@ -86,6 +86,7 @@ class liGRU_layer(torch.jit.ScriptModule):
         self.drop_mask_te = torch.tensor([1.0], device=device).float()
         self.N_drop_masks = 100
         self.drop_mask_cnt = 0
+        self.b_even = True
 
         # Setting the activation function
         self.act = torch.nn.ReLU().to(device)
@@ -123,73 +124,147 @@ class liGRU_layer(torch.jit.ScriptModule):
     def ligru_cell(self, wz, wh):
         # type: (Tensor, Tensor) -> Tensor
         self.batch_size = wh.shape[0]//2
-        if self.bidirectional:
-            h_init = torch.zeros(
-                2 * self.batch_size,
-                self.hidden_size,
-                device="cuda",
-            )
-            drop_masks_i = self.drop(
-                torch.ones(
-                    self.N_drop_masks,
+        if self.batch_size % 2 == 0:
+            self.b_even = True
+        else:
+            self.b_even = False
+
+        if self.b_even:
+            if self.bidirectional:
+                h_init = torch.zeros(
                     2 * self.batch_size,
                     self.hidden_size,
                     device="cuda",
                 )
-            ).data
+                drop_masks_i = self.drop(
+                    torch.ones(
+                        self.N_drop_masks,
+                        2 * self.batch_size,
+                        self.hidden_size,
+                        device="cuda",
+                    )
+                ).data
 
-        else:
-            h_init = torch.zeros(
-                self.batch_size,
-                self.hidden_size,
-                device="cuda",
-            )
-            drop_masks_i = self.drop(
-                torch.ones(
-                    self.N_drop_masks,
+            else:
+                h_init = torch.zeros(
                     self.batch_size,
                     self.hidden_size,
                     device="cuda",
                 )
-            ).data
-
-        hiddens = []
-        ht = h_init
-
-        if self.training:
-
-            drop_mask = drop_masks_i[self.drop_mask_cnt]
-            self.drop_mask_cnt = self.drop_mask_cnt + 1
-
-            if self.drop_mask_cnt >= self.N_drop_masks:
-                self.drop_mask_cnt = 0
-                if self.bidirectional:
-                    drop_masks_i = (
-                        self.drop(
-                            torch.ones(
-                                self.N_drop_masks,
-                                2 * self.batch_size,
-                                self.hidden_size,
-                            )
-                        )
-                        .to(self.device)
-                        .data
+                drop_masks_i = self.drop(
+                    torch.ones(
+                        self.N_drop_masks,
+                        self.batch_size,
+                        self.hidden_size,
+                        device="cuda",
                     )
-                else:
-                    drop_masks_i = (
-                        self.drop(
-                            torch.ones(
-                                self.N_drop_masks,
-                                self.batch_size,
-                                self.hidden_size,
-                            )
-                        )
-                        .to(self.device)
-                        .data
-                    )
+                ).data
 
+            hiddens = []
+            ht = h_init
+
+            if self.training:
+
+                drop_mask = drop_masks_i[self.drop_mask_cnt]
+                self.drop_mask_cnt = self.drop_mask_cnt + 1
+
+                if self.drop_mask_cnt >= self.N_drop_masks:
+                    self.drop_mask_cnt = 0
+                    if self.bidirectional:
+                        drop_masks_i = (
+                            self.drop(
+                                torch.ones(
+                                    self.N_drop_masks,
+                                    2 * self.batch_size+1,
+                                    self.hidden_size,
+                                )
+                            )
+                            .to(self.device)
+                            .data
+                        )
+                    else:
+                        drop_masks_i = (
+                            self.drop(
+                                torch.ones(
+                                    self.N_drop_masks,
+                                    self.batch_size,
+                                    self.hidden_size,
+                                )
+                            )
+                            .to(self.device)
+                            .data
+                        )
+
+            else:
+                drop_mask = self.drop_mask_te
         else:
-            drop_mask = self.drop_mask_te
+            if self.bidirectional:
+                h_init = torch.zeros(
+                    2 * self.batch_size+1,
+                    self.hidden_size,
+                    device="cuda",
+                )
+                drop_masks_i = self.drop(
+                    torch.ones(
+                        self.N_drop_masks,
+                        2 * self.batch_size+1,
+                        self.hidden_size,
+                        device="cuda",
+                    )
+                ).data
+
+            else:
+                h_init = torch.zeros(
+                    self.batch_size,
+                    self.hidden_size,
+                    device="cuda",
+                )
+                drop_masks_i = self.drop(
+                    torch.ones(
+                        self.N_drop_masks,
+                        self.batch_size,
+                        self.hidden_size,
+                        device="cuda",
+                    )
+                ).data
+
+            hiddens = []
+            ht = h_init
+
+            if self.training:
+
+                drop_mask = drop_masks_i[self.drop_mask_cnt]
+                self.drop_mask_cnt = self.drop_mask_cnt + 1
+
+                if self.drop_mask_cnt >= self.N_drop_masks:
+                    self.drop_mask_cnt = 0
+                    if self.bidirectional:
+                        drop_masks_i = (
+                            self.drop(
+                                torch.ones(
+                                    self.N_drop_masks,
+                                    2 * self.batch_size+1,
+                                    self.hidden_size,
+                                )
+                            )
+                            .to(self.device)
+                            .data
+                        )
+                    else:
+                        drop_masks_i = (
+                            self.drop(
+                                torch.ones(
+                                    self.N_drop_masks,
+                                    self.batch_size,
+                                    self.hidden_size,
+                                )
+                            )
+                            .to(self.device)
+                            .data
+                        )
+
+            else:
+                drop_mask = self.drop_mask_te
         #print('wh', wh.shape)
         #print('ht', ht.shape)
         for k in range(wh.shape[1]):

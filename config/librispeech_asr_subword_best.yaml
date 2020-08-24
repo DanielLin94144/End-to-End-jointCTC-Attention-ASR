@@ -24,7 +24,7 @@ data:
 
   text:
     mode: 'subword'                     # 'character'/'word == phone'/'subword'
-    vocab_file: '/Home/daniel094144/End-to-End-jointCTC-Attention-ASR/tests/sample_data/subword-16k.model'
+    vocab_file: '/Home/daniel094144/End-to-End-jointCTC-Attention-ASR/subword-5k.model'
 
 hparas:                                   # Experiment hyper-parameters
   valid_step: 2000

@@ -316,7 +316,7 @@ import librosa.util
 #from torchaudio.transforms import freq_mask, time_mask, time_warp
 '''new Augment function'''
 class Augment(nn.Module):
-    def __init__(self, T=40, num_masks=2, replace_with_zero=False, F=27):#ori: T = 40
+    def __init__(self, T=40, num_masks=1, replace_with_zero=False, F=27):#ori: T = 40
         super(Augment, self).__init__()    
         self.T=T
         self.num_masks=num_masks

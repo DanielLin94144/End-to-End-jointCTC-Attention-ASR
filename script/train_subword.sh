@@ -3,7 +3,7 @@
 # $1 : experiment name
 # $2 : cuda id
 
-CONFIG="librispeech_asr_subword_best"
+CONFIG="librispeech_asr_subword"
 
 DIR="/Home/daniel094144/End-to-End-jointCTC-Attention-ASR/"
 

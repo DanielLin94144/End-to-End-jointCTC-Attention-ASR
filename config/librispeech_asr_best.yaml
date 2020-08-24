@@ -10,7 +10,7 @@ data:
 
   audio:                                  # Pass to audio transform
     feat_type: 'fbank'
-    feat_dim:  80 
+    feat_dim:  40 
     apply_cmvn: False
     delta_order: 1                      # 0: do nothing, 1: add delta, 2: add delta and accelerate
     delta_window_size: 2
@@ -39,7 +39,7 @@ hparas:                                   # Experiment hyper-parameters
   curriculum: 0
   val_mode: 'wer'
   early_stopping: False
-  label_smoothing: True
+  label_smoothing: False
 
 model:                                    # Model architecture
   ctc_weight: 0.5                         # Weight for CTC loss
