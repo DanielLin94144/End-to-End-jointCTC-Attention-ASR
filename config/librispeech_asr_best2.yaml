@@ -10,7 +10,7 @@ data:
 
   audio:                                  # Pass to audio transform
     feat_type: 'fbank'
-    feat_dim:  80 
+    feat_dim:  40 
     apply_cmvn: False
     delta_order: 1                      # 0: do nothing, 1: add delta, 2: add delta and accelerate
     delta_window_size: 2
@@ -39,7 +39,7 @@ hparas:                                   # Experiment hyper-parameters
   curriculum: 0
   val_mode: 'wer'
   early_stopping: False
-  label_smoothing: False
+  label_smoothing: True
 
 model:                                    # Model architecture
   ctc_weight: 0.5                         # Weight for CTC loss
@@ -49,11 +49,11 @@ model:                                    # Model architecture
     vgg_low_filt: -1
     module: 'LSTM'                        # 'LSTM'/'GRU'/'Transformer'
     bidirection: True
-    dim: [1024, 1024, 1024, 1024, 1024]
-    dropout: [0, 0.2,0.2,0.2,0.2]
+    dim: [1280, 1280, 1280, 1280, 1280]
+    dropout: [0.3, 0.3,0.3,0.3,0.3]
     layer_norm: [False, False, False, False, False]
     proj: [True,True,True,True, True]           # Linear projection + Tanh after each rnn layer
-    sample_rate: [1,1,1,1, 1]
+    sample_rate: [1,1,1,1,1]
     sample_style: 'drop'                  # 'drop'/'concat'
   attention:
     mode: 'loc'                           # 'dot'/'loc'
@@ -66,5 +66,5 @@ model:                                    # Model architecture
   decoder:
     module: 'LSTM'                        # 'LSTM'/'GRU'/'Transformer'
     dim: 1024
-    layer: 2
+    layer: 1
     dropout: 0

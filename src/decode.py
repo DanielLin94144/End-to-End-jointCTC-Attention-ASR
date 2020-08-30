@@ -147,6 +147,7 @@ class BeamDecoder(nn.Module):
                     # assuming batch size always 1,  resulting 1xV
                     lm_output = lm_output.squeeze(0)
                     cur_prob += self.lm_w*lm_output.log_softmax(dim=-1)
+                    '''no otehr constraint to lengthen transcripy?'''
 
                 # Beam search
                 # Note: Ignored batch dim.
@@ -155,12 +156,16 @@ class BeamDecoder(nn.Module):
                 final, top = hypothesis.addTopk(topi, topv, self.asr.decoder.get_state(), att_map=prev_attn,
                                                 lm_state=lm_state, ctc_state=ctc_state, ctc_prob=ctc_prob,
                                                 ctc_candidates=candidates)
+                # top : new hypo 
+
                 # Move complete hyps. out
-                if final is not None and (t >= min_output_len):
-                    final_hypothesis.append(final)
+                # finish hypo (stop)
+                if final is not None and (t >= min_output_len): # if detect eos, final is not None
+                    final_hypothesis.append(final) # finish one beam
                     if self.beam_size == 1:
                         return final_hypothesis
-                next_top_hypothesis.extend(top)
+                # keep finding candidate for hypo
+                next_top_hypothesis.extend(top)  
 
             # Sort for top N beams
             next_top_hypothesis.sort(key=lambda o: o.avgScore(), reverse=True)
@@ -168,7 +173,7 @@ class BeamDecoder(nn.Module):
             next_top_hypothesis = []
 
         # Rescore all hyp (finished/unfinished)
-        final_hypothesis += prev_top_hypothesis
+        final_hypothesis += prev_top_hypothesis  # add the last one ?
         final_hypothesis.sort(key=lambda o: o.avgScore(), reverse=True)
 
         return final_hypothesis[:self.beam_size]
@@ -217,7 +222,9 @@ class Hypothesis:
 
         for i in range(beam_size):
             # Detect <eos>
-            if topi[i].item() == 1:
+            #         # <pad>=0, <eos>=1, <unk>=2
+            #self._vocab_list = ["<pad>", "<eos>", "<unk>"] + vocab_list
+            if topi[i].item() == 1: # topi : vocab index 
                 term_score = topv[i].cpu()
                 continue
 
@@ -233,10 +240,11 @@ class Hypothesis:
             new_hypothesis.append(Hypothesis(decoder_state,
                                              output_seq=idxes, output_scores=scores, lm_state=lm_state,
                                              ctc_state=ctc_s, ctc_prob=ctc_p, att_map=att_map))
+        # eos 
         if term_score is not None:
-            self.output_seq.append(torch.tensor(1))
+            self.output_seq.append(torch.tensor(1)) # eos index is 1
             self.output_scores.append(term_score)
-            return self, new_hypothesis
+            return self, new_hypothesis # final is self, not None
         return None, new_hypothesis
 
     def get_state(self, device):

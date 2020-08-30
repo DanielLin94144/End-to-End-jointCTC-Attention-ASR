@@ -368,7 +368,7 @@ class Augment(nn.Module):
             else: cloned[:,t_zero:mask_end] = cloned.mean()
         return cloned
 
-    def freq_mask(self, spec, F=30, num_masks=1, replace_with_zero=False):
+    def freq_mask(self, spec, F=27, num_masks=1, replace_with_zero=False):
         cloned = spec
         num_mel_channels = cloned.shape[0]
 
