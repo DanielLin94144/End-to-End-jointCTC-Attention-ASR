@@ -1,12 +1,12 @@
 #!/bin/bash
 
 CONFIG="librispeech_lm"
-DIR="/data/storage/harry/E2E_ASR"
+DIR="/Home/daniel094144/End-to-End-jointCTC-Attention-ASR/libri_LM"
 
 echo "Start running training process of RNNLM"
 CUDA_VISIBLE_DEVICES=$2 python3 main.py --config config/${CONFIG}.yaml \
     --name $1 \
-    --njobs 8 \
+    --njobs 16 \
     --seed 0 \
     --lm \
     --logdir ${DIR}/log/ \

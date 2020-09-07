@@ -7,6 +7,25 @@ from torch import nn
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+'''new class for label smoothing loss'''
+class LabelSmoothingLoss(nn.Module):
+    def __init__(self, classes, smoothing=0.0, dim=-1):
+        super(LabelSmoothingLoss, self).__init__()
+        self.confidence = 1.0 - smoothing
+        self.smoothing = smoothing
+        self.cls = classes
+        self.dim = dim
+
+    def forward(self, pred, target):
+        pred = pred.log_softmax(dim=self.dim)
+        # true_dist = pred.data.clone()
+        true_dist = torch.zeros_like(pred)
+        true_dist.fill_(self.smoothing / (self.cls - 1)) # uniform distribution u = 1/ numClass
+        true_dist.scatter_(1, target.unsqueeze(1), self.confidence)
+        return torch.mean(torch.sum(-true_dist * pred, dim=self.dim))
+
+
+
 
 class Timer():
     ''' Timer for recording training time distribution. '''

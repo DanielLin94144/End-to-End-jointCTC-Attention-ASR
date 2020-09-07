@@ -7,7 +7,7 @@ from src.solver import BaseSolver
 from src.asr import ASR
 from src.optim import Optimizer
 from src.data import load_dataset
-from src.util import human_format, cal_er, feat_to_fig
+from src.util import human_format, cal_er, feat_to_fig, LabelSmoothingLoss
 from src.audio import Delta, Postprocess, Augment
 
 EMPTY_CACHE_STEP = 100
@@ -63,7 +63,8 @@ class Solver(BaseSolver):
         ''' Setup ASR model and optimizer '''
         # Model
         #print(self.feat_dim) #160
-        self.model = ASR(self.feat_dim, self.vocab_size, **self.config['model']).to(self.device)
+        batch_size = self.config['data']['corpus']['batch_size']//2
+        self.model = ASR(self.feat_dim, self.vocab_size, batch_size, **self.config['model']).to(self.device)
 
 
 
@@ -71,7 +72,13 @@ class Solver(BaseSolver):
         model_paras = [{'params':self.model.parameters()}]
 
         # Losses
-        self.seq_loss = torch.nn.CrossEntropyLoss(ignore_index=0)
+        '''testing label smoothing'''
+        LS = True
+        if self.config['hparas']['label_smoothing']:
+            self.seq_loss = LabelSmoothingLoss(31, 0.1)   
+            print('[INFO]  using label smoothing. ') 
+        else:    
+            self.seq_loss = torch.nn.CrossEntropyLoss(ignore_index=0)
         self.ctc_loss = torch.nn.CTCLoss(blank=0, zero_infinity=False) # Note: zero_infinity=False is unstable?
 
         # Plug-ins
@@ -114,26 +121,27 @@ class Solver(BaseSolver):
             if self.fix_dec and self.model.enable_ctc:
                 self.model.fix_ctc_layer()
         
-        n_epochs = 0
+        self.n_epochs = 0
         self.timer.set()
         '''early stopping for ctc '''
         self.early_stoping = self.config['hparas']['early_stopping']
         stop_epoch = 10
         batch_size = self.config['data']['corpus']['batch_size']
         stop_step = len(self.tr_set)*stop_epoch//batch_size
+        
 
 
         while self.step< self.max_step:
             ctc_loss, att_loss, emb_loss = None, None, None
             # Renew dataloader to enable random sampling 
-            '''
-            if self.curriculum>0: and n_epochs==self.curriculum:
+            
+            if self.curriculum>0 and n_epochs==self.curriculum:
                 self.verbose('Curriculum learning ends after {} epochs, starting random sampling.'.format(n_epochs))
                 self.tr_set, _, _, _, _, _ = \
                          load_dataset(self.paras.njobs, self.paras.gpu, self.paras.pin_memory, 
                                       False, **self.config['data'])
-            '''
-            print('epoch: ', n_epochs)
+            
+            
             for data in self.tr_set:
                 # Pre-step : update tf_rate/lr_rate and do zero_grad
                 tf_rate = self.optimizer.pre_step(self.step)
@@ -167,7 +175,7 @@ class Solver(BaseSolver):
                     if self.step > stop_step:
                         ctc_output = None
                         self.model.ctc_weight = 0
-                    
+                #print(ctc_output.shape)
                 # Compute all objectives
                 if ctc_output is not None:
                     if self.paras.cudnn_ctc:
@@ -228,17 +236,24 @@ class Solver(BaseSolver):
                             self.validate(self.dv_set[dv_id], self.dv_names[dv_id])
                     else:
                         self.validate(self.dv_set, self.dv_names)
-
+                if self.step % (len(self.tr_set)// batch_size)==0: # one epoch
+                    print('Have finished epoch: ', self.n_epochs)
+                    self.n_epochs +=1
+                    
+                    if self.lr_scheduler is 'reduce_stop_improve':
+                        self.lr_scheduler.step(total_loss)
                 # End of step
                 # if self.step % EMPTY_CACHE_STEP == 0:
                     # Empty cuda cache after every fixed amount of steps
                 torch.cuda.empty_cache() # https://github.com/pytorch/pytorch/issues/13246#issuecomment-529185354
                 self.timer.set()
                 if self.step > self.max_step: break
+            
+            
+            
             #update lr_scheduler
-            if self.lr_scheduler is 'reduce_stop_improve':
-                self.lr_scheduler.step(total_loss)
-            n_epochs +=1
+            
+            
         self.log.close()
         print('[INFO] Finished training after', human_format(self.max_step), 'steps.')
         

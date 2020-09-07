@@ -59,6 +59,7 @@ class Solver(BaseSolver):
     def set_model(self):
         ''' Setup ASR model '''
         # Model
+        
         self.model = ASR(self.feat_dim, self.vocab_size, **self.config['model'])
 
         # Plug-ins

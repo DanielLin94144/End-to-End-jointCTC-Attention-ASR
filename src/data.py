@@ -127,6 +127,7 @@ def load_dataset(n_jobs, use_gpu, pin_memory, ascending, corpus, audio, text):
     shuffle = (mode=='train' and not ascending)
     drop_last = shuffle
     # Create data loader
+    #print(tr_loader_bs)
     tr_set = DataLoader(tr_set, batch_size=tr_loader_bs, shuffle=shuffle, drop_last=drop_last, collate_fn=collect_tr,
                         num_workers=n_jobs, pin_memory=use_gpu)
     
