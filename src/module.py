@@ -582,18 +582,21 @@ class VGGExtractor_LN(nn.Module):
         self.extractor = nn.Sequential(
                                 nn.Conv2d( in_channel, self.init_dim, 3, stride=1, padding=1),
                                 CNNLayerNorm(input_dim),                              
-                                nn.ReLU(),                             
+                                nn.LeakyReLU(),                             
                                 nn.Conv2d( self.init_dim, self.init_dim, 3, stride=1, padding=1),
                                 CNNLayerNorm(input_dim),
-                                nn.ReLU(),                              
-                                nn.MaxPool2d(2, stride=2), # Half-time dimension                                
+                                nn.LeakyReLU(),                              
+                                nn.MaxPool2d(2, stride=2),  # Half-time dimension      
+                                nn.Dropout2d(p=0.2), 
+                                              
                                 nn.Conv2d( self.init_dim, self.hide_dim, 3, stride=1, padding=1),
                                 CNNLayerNorm(input_dim//2),
-                                nn.ReLU(),                                
+                                nn.LeakyReLU(),                                
                                 nn.Conv2d( self.hide_dim, self.hide_dim, 3, stride=1, padding=1),
                                 CNNLayerNorm(input_dim//2),   
-                                nn.ReLU(),                               
-                                nn.MaxPool2d(2, stride=2) # Half-time dimension
+                                nn.LeakyReLU(),                               
+                                nn.MaxPool2d(2, stride=2), 
+                                nn.Dropout2d(p=0.2)
                             )
 
     def check_dim(self,input_dim):
