@@ -1,25 +1,25 @@
 data:
   corpus:                                 # Pass to dataloader
     # The following depends on corpus
-    path: '/Home/daniel094144/LAS/LibriSpeech'
+    path: '/Home/daniel094144/data/LibriSpeech'
     name: 'LibriSpeech'
     train_split: ['train-clean-100']
     dev_split: ['dev-clean']
     bucketing: True
-    batch_size: 20
+    batch_size: 16
 
   audio:                                  # Pass to audio transform
     feat_type: 'fbank'
-    feat_dim:  80 
+    feat_dim:  40 
     apply_cmvn: False
-    delta_order: 2                      # 0: do nothing, 1: add delta, 2: add delta and accelerate
+    delta_order: 1                      # 0: do nothing, 1: add delta, 2: add delta and accelerate
     delta_window_size: 2
     frame_length: 25 # ms
     frame_shift: 10 # ms
     ref_level_db: 20
     min_level_db: -100
     preemphasis_coeff: 0.97
-    augment: True
+    augment: False #True
     
 
   text:
@@ -39,7 +39,7 @@ hparas:                                   # Experiment hyper-parameters
   curriculum: 0
   val_mode: 'wer'
   early_stopping: False
-  label_smoothing: True
+  label_smoothing: False #True
 
 model:                                    # Model architecture
   ctc_weight: 0.5                         # Weight for CTC loss
@@ -53,7 +53,7 @@ model:                                    # Model architecture
     dropout: [0.2,0.2,0.2,0.2,0.2]
     layer_norm: [False, False, False, False, False]
     proj: [True,True,True,True, True]           # Linear projection + Tanh after each rnn layer
-    sample_rate: [1,2,2,1,1]
+    sample_rate: [1,1,1,1,1]
     sample_style: 'drop'                  # 'drop'/'concat'
   attention:
     mode: 'loc'                           # 'dot'/'loc'

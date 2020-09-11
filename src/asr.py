@@ -38,8 +38,8 @@ class ASR(nn.Module):
             self.attention = Attention(self.encoder.out_dim, query_dim, **attention)
 
         # Init
-        '''is there problem?'''
-        init_adadelta = None # set for liGRU
+    
+        init_adadelta = True # set for liGRU
         if init_adadelta:
             self.apply(init_weights)
             if self.enable_att:
@@ -457,7 +457,7 @@ class Encoder(nn.Module):
         # Construct model
         module_list = []
         input_dim = input_size #160
-
+    
         if vgg > 0:
             if vgg == 1:
                 vgg_extractor = VGGExtractor(input_size)
