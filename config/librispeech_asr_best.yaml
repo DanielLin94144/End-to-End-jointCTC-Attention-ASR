@@ -1,12 +1,12 @@
 data:
   corpus:                                 # Pass to dataloader
     # The following depends on corpus
-    path: '/Home/daniel094144/LAS/LibriSpeech'
+    path: '/Home/daniel094144/data/LibriSpeech'
     name: 'LibriSpeech'
     train_split: ['train-clean-100']
     dev_split: ['dev-clean']
     bucketing: True
-    batch_size: 8
+    batch_size: 16
 
   audio:                                  # Pass to audio transform
     feat_type: 'fbank'
@@ -19,7 +19,7 @@ data:
     ref_level_db: 20
     min_level_db: -100
     preemphasis_coeff: 0.97
-    augment: True
+    augment: False
     
 
   text:
@@ -39,12 +39,12 @@ hparas:                                   # Experiment hyper-parameters
   curriculum: 0
   val_mode: 'wer'
   early_stopping: False
-  label_smoothing: True
+  label_smoothing: False
 
 model:                                    # Model architecture
   ctc_weight: 0.5                         # Weight for CTC loss
   encoder:
-    vgg: 5                     # 4x reduction on time feature extraction ( 5: VGG + layer normalization)
+    vgg: 1                    # 4x reduction on time feature extraction ( 5: VGG + layer normalization)
     vgg_freq: -1
     vgg_low_filt: -1
     module: 'LSTM'                        # 'LSTM'/'GRU'/'Transformer'
@@ -52,15 +52,15 @@ model:                                    # Model architecture
     dim: [1024,1024,1024,1024]
     dropout: [0.2,0.2,0.2,0.2]
     layer_norm: [False, False, False, False]
-    proj: [False, False, False, False] #[True,True,True,True]           # Linear projection + Tanh after each rnn layer
+    proj: [True,True,True,True]           # Linear projection + Tanh after each rnn layer
     sample_rate: [1,1,1,1]
     sample_style: 'drop'                  # 'drop'/'concat'
   attention:
     mode: 'loc'                           # 'dot'/'loc'
-    dim: 1024
+    dim: 300
     num_head: 1
     v_proj: False                         # if False and num_head>1, encoder state will be duplicated for each head
-    temperature: 1                      # scaling factor for attention
+    temperature: 0.5                      # scaling factor for attention
     loc_kernel_size: 100                  # just for mode=='loc'
     loc_kernel_num: 10                    # just for mode=='loc'
   decoder:

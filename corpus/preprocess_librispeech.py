@@ -47,10 +47,10 @@ class LibriDataset(Dataset):
             file_len = [len(txt) for txt in text]
         
         self.file_list, self.text = zip(*[(str(f_name),txt) \
-                for time_len,f_namfor time_len,f_name,txt in sorted(zip(file_len,file_list,text), reverse=not ascending, key=lambda x:x[0])])
+                for time_len,f_name,txt in sorted(zip(file_len,file_list,text), reverse=not ascending, key=lambda x:x[0])])
         if read_audio:
             from src.audio import ReadAudio
-            audio_reader = ReadAudio(16000)
+            audio_reader = ReadAudio(16000)##
             self.file_list = [audio_reader(str(f)) for i, f in tqdm(enumerate(self.file_list))]
 
         print('[INFO] LibriSpeech', split[-1], 'set :',len(self.file_list),'audio files found')

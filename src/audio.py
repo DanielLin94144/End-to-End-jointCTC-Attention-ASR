@@ -41,7 +41,7 @@ class Delta(torch.jit.ScriptModule):
 
     __constants__ = ["order", "window_size", "padding", "device", "batch"]
 
-    def __init__(self, order=1, window_size=2, device=None, batch=False):
+    def __init__(self, order=2, window_size=2, device=None, batch=False):
         # Reference:
         # https://kaldi-asr.org/doc/feature-functions_8cc_source.html
         # https://github.com/tensorflow/tensor2tensor/blob/master/tensor2tensor/layers/common_audio.py
