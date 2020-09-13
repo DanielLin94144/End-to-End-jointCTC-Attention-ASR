@@ -282,22 +282,33 @@ class ExtractAudioFeature(nn.Module):
 
 class ReadAudio(nn.Module):
     # Read audio files and downsample to specified sample rate
-    def __init__(self, desired_sr):
+    def __init__(self, desired_sr, mode):
         super(ReadAudio, self).__init__()
         self.desired_sr = desired_sr
-    
+        self.augmenter = Compose([
+        AddGaussianNoise(min_amplitude=0.001, max_amplitude=0.01, p=0.3),
+        TimeStretch(min_rate=0.8, max_rate=1.25, p=0.5),
+        PitchShift(min_semitones=-4, max_semitones=4, p=0.5),
+        #Shift(min_fraction=-0.5, max_fraction=0.5, p=0.5),
+        ])
+        self.mode = mode
+
     def forward(self, filepath):
         if type(filepath) is not str:
             return filepath
-        waveform, sample_rate = torchaudio.load(filepath)
+        #waveform, sample_rate = torchaudio.load(filepath)
+        waveform, sample_rate = librosa.load(filepath)
         
-        if sample_rate != self.desired_sr:
+        #if sample_rate != self.desired_sr:
             # Sample all data to specified sample rate
-            waveform = torchaudio.compliance.kaldi.resample_waveform(waveform, 
-                                                                    sample_rate, 
-                                                                    self.desired_sr)
-
-        # print('new shape  : {}'.format(waveform.shape))
+        #    waveform = torchaudio.compliance.kaldi.resample_waveform(waveform, 
+         #                                                           sample_rate, 
+         #                                                           self.desired_sr)
+        if self.mode=="train":
+            waveform = self.augmenter(samples=waveform, sample_rate=self.desired_sr)
+            waveform = torch.tensor(waveform.reshape(1, len(waveform)))
+        #print(waveform)
+        #print('new shape  : {}'.format(torch.tensor(waveform).shape))
         return waveform
 
 #################################################
@@ -314,6 +325,32 @@ import matplotlib.pyplot as plt
 #from IPython.display import Audio
 import librosa.util
 #from torchaudio.transforms import freq_mask, time_mask, time_warp
+'''Time domain augmentataion'''
+from audiomentations import Compose, AddGaussianNoise, TimeStretch, PitchShift, Shift, FrequencyMask, TimeMask
+import numpy as np
+class Augment_Time(nn.Module):
+    def __init__(self):
+        super(Augment_Time, self).__init__()
+        self.p = 0.5
+        self.augmenter = Compose([
+        AddGaussianNoise(min_amplitude=0.001, max_amplitude=0.01, p=0.3),
+        TimeStretch(min_rate=0.8, max_rate=1.25, p=0.5),
+        PitchShift(min_semitones=-4, max_semitones=4, p=0.5),
+        FrequencyMask(),
+        TimeMask()
+        #Shift(min_fraction=-0.5, max_fraction=0.5, p=0.5),
+        ])
+    def forward(self, waveform):
+        SAMPLE_RATE = 16000
+        samples = self.augmenter(samples=waveform.numpy(), sample_rate=SAMPLE_RATE)
+        
+        return torch.tensor(samples)
+
+
+
+
+
+
 '''new Augment function'''
 class Augment(nn.Module):
     def __init__(self, T=40, num_masks=1, replace_with_zero=False, F=27):#ori: T = 40
@@ -325,18 +362,8 @@ class Augment(nn.Module):
         self.spec=None
     #@torch.jit.script_method
     def forward(self, spec):
-        #print(spec.shape[0]*spec.shape[1])
-        #print(torch.sum(torch.isfinite(spec)))
         spec = spec.permute(1, 0)
-        #spec = torch.log10(spec + 1e-9)
-        
-        #spec = spec.detach().numpy()
-        #print(torch.sum(torch.isfinite(spec)))
-        #spec = librosa.util.normalize(spec+5)
-        #spec = self.normalize(spec)
-        #spec = torch.Tensor(spec)
-        #print(spec)
-        #self.tensor_to_img(spec, 'ori.png')
+
         spec = self.time_mask(spec, T=self.T, num_masks=self.num_masks, replace_with_zero=self.replace_with_zero)
         spec = self.freq_mask(spec, F=self.F, num_masks=self.num_masks, replace_with_zero=self.replace_with_zero)
         #self.tensor_to_img(spec, 'augment.png')
@@ -349,7 +376,7 @@ class Augment(nn.Module):
         spec = (spec-spec.mean())/spec.std()
         return spec        
 
-    def time_mask(self, spec, T=40, num_masks=1, replace_with_zero=False):
+    def time_mask(self, spec, T=100, num_masks=1, replace_with_zero=False):
         cloned = spec
         len_spectro = cloned.shape[1]
         
@@ -509,12 +536,12 @@ def create_transform(audio_config, post_process=True, mode='train'):
     #print(feat_dim)
     augment = audio_config.pop("augment")
 
-    transforms = [ReadAudio(SAMPLE_RATE)]
+    transforms = [ReadAudio(SAMPLE_RATE, mode)]
+    #if mode=='train':
+        #transforms.append(Augment_Time())
+
 
     transforms.append(ExtractAudioFeature(mode=feat_type, num_mel_bins=feat_dim, sample_rate=SAMPLE_RATE, **audio_config))
-
-
-
 
     if delta_order >= 1:
         transforms.append(Delta(delta_order, delta_window_size))

@@ -39,7 +39,7 @@ class ASR(nn.Module):
 
         # Init
     
-        init_adadelta = True # set for liGRU
+        init_adadelta = False # set for liGRU
         if init_adadelta:
             self.apply(init_weights)
             if self.enable_att:
