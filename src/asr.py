@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import math
 import torch
 import numpy as np
@@ -105,7 +106,7 @@ class ASR(nn.Module):
 
         # Encode
         encode_feature,encode_len = self.encoder(audio_feature,feature_len)
-        #print(feature_len)
+        
         #print(encode_len)
         # encode_feature.shape is B, T, D
         #print('input:', audio_feature.shape)
@@ -457,6 +458,7 @@ class Encoder(nn.Module):
         # Construct model
         module_list = []
         input_dim = input_size #160
+        #print('in', input_dim)
     
         if vgg > 0:
             if vgg == 1:
@@ -537,4 +539,4 @@ class Encoder(nn.Module):
         for l in layers:
             for param in self.layers[l].parameters():
                 param.requires_grad = False
-    
+

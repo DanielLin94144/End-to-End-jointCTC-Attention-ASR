@@ -5,7 +5,7 @@
 
 CONFIG="librispeech_asr_best3"
 
-DIR="/Home/daniel094144/End-to-End-jointCTC-Attention-ASR/"
+DIR="/home/daniel094144/Daniel/End-to-End-jointCTC-Attention-ASR"
 
 echo "Start running training process of E2E ASR"
 CUDA_VISIBLE_DEVICES=$2 python3 main.py --config config/${CONFIG}.yaml \

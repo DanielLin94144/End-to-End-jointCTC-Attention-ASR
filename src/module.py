@@ -5,8 +5,8 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence,pad_packed_sequence
 from torch.autograd import Function
 
-FBANK_SIZE = 80
-   
+FBANK_SIZE = 40
+
 
 ''' one layer of liGRU using torchscript to accelrate training speed'''
 class liGRU_layer(torch.jit.ScriptModule):
@@ -298,7 +298,7 @@ def flip(x, dim):
         :, getattr(torch.arange(x.size(1) - 1, -1, -1), ("cpu", "cuda")[x.is_cuda])().long(), :
     ]
     return x.view(xsize)
-    
+
 def act_fun(act_type):
 
     if act_type == "relu":
@@ -574,26 +574,28 @@ class VGGExtractor_LN(nn.Module):
         super(VGGExtractor_LN, self).__init__()
         self.init_dim = 64
         self.hide_dim = 128
+        #print(input_dim)
         in_channel,freq_dim,out_dim = self.check_dim(input_dim)
+       
         self.in_channel = in_channel
         self.freq_dim = freq_dim
         self.out_dim = out_dim
-
+        LN_dim = FBANK_SIZE
         self.extractor = nn.Sequential(
                                 nn.Conv2d( in_channel, self.init_dim, 3, stride=1, padding=1),
-                                CNNLayerNorm(input_dim),                              
+                                CNNLayerNorm(LN_dim),                              
                                 nn.ReLU(),                             
                                 nn.Conv2d( self.init_dim, self.init_dim, 3, stride=1, padding=1),
-                                CNNLayerNorm(input_dim),
+                                CNNLayerNorm(LN_dim),
                                 nn.ReLU(),                              
                                 nn.MaxPool2d(2, stride=2),  # Half-time dimension      
                                 #nn.Dropout2d(p=0.2), 
                                               
                                 nn.Conv2d( self.init_dim, self.hide_dim, 3, stride=1, padding=1),
-                                CNNLayerNorm(input_dim//2),
+                                CNNLayerNorm(LN_dim//2),
                                 nn.ReLU(),                                
                                 nn.Conv2d( self.hide_dim, self.hide_dim, 3, stride=1, padding=1),
-                                CNNLayerNorm(input_dim//2),   
+                                CNNLayerNorm(LN_dim//2),   
                                 nn.ReLU(),                               
                                 nn.MaxPool2d(2, stride=2), 
                                 #nn.Dropout2d(p=0.2)
@@ -616,7 +618,8 @@ class VGGExtractor_LN(nn.Module):
         # crop sequence s.t. t%4==0
         if feature.shape[1]%4 != 0:
             feature = feature[:,:-(feature.shape[1]%4),:].contiguous()
-        bs,ts,ds = feature.shape
+        bs,ts,ds = feature.shape # 8, 1960, 120
+        #print('f', feature.shape)
         # stack feature according to result of check_dim
         feature = feature.view(bs,ts,self.in_channel,self.freq_dim)
         feature = feature.transpose(1,2)
@@ -626,6 +629,7 @@ class VGGExtractor_LN(nn.Module):
     def forward(self,feature,feat_len):
         # Feature shape BSxTxD -> BS x CH(num of delta) x T x D(acoustic feature dim)
         feature, feat_len = self.view_input(feature,feat_len)
+        #print(feature.shape)
         # Foward
         feature = self.extractor(feature)
         # BSx128xT/4xD/4 -> BSxT/4x128xD/4
@@ -638,8 +642,8 @@ class VGGExtractor(nn.Module):
     ''' VGG extractor for ASR described in https://arxiv.org/pdf/1706.02737.pdf'''
     def __init__(self,input_dim):
         super(VGGExtractor, self).__init__()
-        self.init_dim = 64
-        self.hide_dim = 128
+        self.init_dim = 128
+        self.hide_dim = 256
         in_channel,freq_dim,out_dim = self.check_dim(input_dim)
         self.in_channel = in_channel
         self.freq_dim = freq_dim

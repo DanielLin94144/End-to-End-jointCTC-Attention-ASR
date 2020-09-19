@@ -1,7 +1,7 @@
 data:
   corpus:                                 # Pass to dataloader
     # The following depends on corpus
-    path: '/Home/daniel094144/data/LibriSpeech'
+    path: '/home/daniel094144/data_folder/LibriSpeech'
     name: 'LibriSpeech'
     train_split: ['train-clean-100']
     dev_split: ['dev-clean']
@@ -12,7 +12,7 @@ data:
     feat_type: 'fbank'
     feat_dim:  40 
     apply_cmvn: False
-    delta_order: 1                    # 0: do nothing, 1: add delta, 2: add delta and accelerate
+    delta_order: 2       # 0: do nothing, 1: add delta, 2: add delta and accelerate
     delta_window_size: 2
     frame_length: 25 # ms
     frame_shift: 10 # ms
@@ -20,7 +20,7 @@ data:
     min_level_db: -100
     preemphasis_coeff: 0.97
     augment: True
-    
+    time_aug: False
 
   text:
     mode: 'character'                     # 'character'/'word == phone'/'subword'
@@ -44,7 +44,7 @@ hparas:                                   # Experiment hyper-parameters
 model:                                    # Model architecture
   ctc_weight: 0.5                         # Weight for CTC loss
   encoder:
-    vgg: 1                     # 4x reduction on time feature extraction ( 5: VGG + layer normalization)
+    vgg: 5                     # 4x reduction on time feature extraction ( 5: VGG + layer normalization)
     vgg_freq: -1
     vgg_low_filt: -1
     module: 'LSTM'                        # 'LSTM'/'GRU'/'Transformer'
@@ -66,5 +66,5 @@ model:                                    # Model architecture
   decoder:
     module: 'LSTM'                        # 'LSTM'/'GRU'/'Transformer'
     dim: 1024
-    layer: 1
+    layer: 2
     dropout: 0
