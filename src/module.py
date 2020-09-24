@@ -581,6 +581,7 @@ class VGGExtractor_LN(nn.Module):
         self.freq_dim = freq_dim
         self.out_dim = out_dim
         LN_dim = FBANK_SIZE
+        
         self.extractor = nn.Sequential(
                                 nn.Conv2d( in_channel, self.init_dim, 3, stride=1, padding=1),
                                 CNNLayerNorm(LN_dim),                              

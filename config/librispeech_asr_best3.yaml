@@ -48,11 +48,11 @@ model:                                    # Model architecture
     vgg_low_filt: -1
     module: 'LSTM'                        # 'LSTM'/'GRU'/'Transformer'
     bidirection: True
-    dim: [1024,1024,1024,1024,1024, 1024]
-    dropout: [0.2,0.2,0.2,0.2,0.2,0.2]
-    layer_norm: [False, False, False, False, False,False]
-    proj: [True,True,True,True, True,True]           # Line ar projection + Tanh after each rnn layer
-    sample_rate: [1,1,1,1,1, 1]
+    dim: [1280, 1280, 1280, 1280, 1280]
+    dropout: [0.3, 0.3,0.3,0.3,0.3]
+    layer_norm: [False, False, False, False, False]
+    proj: [True,True,True,True, True]           # Linear projection + Tanh after each rnn layer
+    sample_rate: [1,1, 1,1,1]
     sample_style: 'drop'                  # 'drop'/'concat'
   attention:
     mode: 'loc'                           # 'dot'/'loc'
@@ -65,6 +65,6 @@ model:                                    # Model architecture
   decoder:
     module: 'LSTM'                        # 'LSTM'/'GRU'/'Transformer'
     dim: 1024
-    layer: 2
+    layer: 1
     dropout: 0
 

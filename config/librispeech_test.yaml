@@ -1,22 +1,22 @@
 data:
   corpus:                                 # Pass to dataloader
     # The following depends on corpus
-    path: '/Home/daniel094144/LAS/LibriSpeech'
+    path: '../../data_folder/LibriSpeech'
     name: 'LibriSpeech'
     dev_split: ['dev-clean']
     test_split: ['test-clean']
     bucketing: False
     batch_size: 1
 src:
-  config: '/Home/daniel094144/End-to-End-jointCTC-Attention-ASR/config/librispeech_asr_best.yaml'
-  ckpt: '/Home/daniel094144/End-to-End-jointCTC-Attention-ASR/ckpt/LS_aug/best_att_dev-clean.pth'
+  config: './config/librispeech_asr_best2.yaml'
+  ckpt: './ckpt/1280-2_lr_T40_mean/best_att_dev-clean.pth'
 
 decode:
   ctc_weight: 0
-  beam_size: 5
+  beam_size: 2
   # vocab_candidate: 12
   min_len_ratio: 0.01
   max_len_ratio: 0.3
-  lm_config: '/Home/daniel094144/End-to-End-jointCTC-Attention-ASR/config/librispeech_lm.yaml'
-  lm_path: '/Home/daniel094144/End-to-End-jointCTC-Attention-ASR/libri_LM/ckpt/LM/best_ppx.pth'
+  lm_config: './config/librispeech_lm_best.yaml'
+  lm_path: './best_model/libri_LM_2048_4/ckpt/LM_2048-4/best_ppx.pth'
   lm_weight: 0.3

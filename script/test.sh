@@ -6,13 +6,13 @@
 
 CONFIG="librispeech_test"
 
-DIR="/Home/daniel094144/End-to-End-jointCTC-Attention-ASR/"
+DIR="."
 
 echo "Start running testing process of E2E ASR"
 CUDA_VISIBLE_DEVICES=$2 python3 main.py --config config/${CONFIG}.yaml \
     --name $1 \
 	--test \
-    --njobs 12 \
+    --njobs 8 \
     --seed 0 \
     --ckpdir ${DIR}/ckpt/$1 \
 	--outdir ${DIR}/test_result/$1
