@@ -13,7 +13,7 @@ src:
 
 decode:
   ctc_weight: 0
-  beam_size: 2
+  beam_size: 8
   # vocab_candidate: 12
   min_len_ratio: 0.01
   max_len_ratio: 0.3
